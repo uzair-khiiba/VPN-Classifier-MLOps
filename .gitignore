@@ -37,3 +37,6 @@ crowdsec-vpn-classification-2nd-place.ipynb
 # Proposal originals at the project root (copies are in docs/proposal/)
 /MLOps Course Project Proposal.docx
 /VPN_Proxy_Classification_MLOps_Proposal.pptx
+
+# Local secrets (e.g. MLflow/DagsHub credentials)
+.env
