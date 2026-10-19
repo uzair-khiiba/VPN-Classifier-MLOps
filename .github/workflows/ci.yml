@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff==$(grep -oP '^ruff==\K.*' requirements.txt)
+      - run: ruff check src tests
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -v
+      - name: End-to-end pipeline on the committed sample
+        run: |
+          python -m src.prepare_data --sample
+          python -m src.train --models logreg rf --cv-folds 3
+          test -f models/model.joblib
