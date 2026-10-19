@@ -1,0 +1,130 @@
+# Ludwig AutoML config: hyperparameter search for a VPN/proxy classifier.
+#
+# Runs on the per-IP feature tables written by `python -m src.prepare_data`
+# (data/processed/train.parquet / test.parquet), so it uses the same 28 features
+# and the same held-out test IPs as the scikit-learn models in src/train.py.
+#
+# Run via the wrapper (splits train/validation, logs the best trial to MLflow):
+#     make automl            # or: python -m src.automl_ludwig
+# or directly with the Ludwig CLI on a single dataset (uses preprocessing.split below):
+#     ludwig hyperopt --config configs/ludwig_automl.yaml --dataset data/processed/train.parquet
+#
+# Requires Ludwig 0.11.0, the last release that supports Python 3.11 (see requirements-ludwig.txt).
+
+model_type: ecd
+
+input_features:
+  # Counts that are always >= 1 are heavy-tailed: log1p before the network sees them.
+  # Ludwig's log1p rejects zeros, so counts that can be 0 (gaps, ASN size, ports,
+  # shared fingerprints) are z-scored instead.
+  - {name: n_signals, type: number, preprocessing: {normalization: log1p}}
+  - {name: n_attack_types, type: number, preprocessing: {normalization: log1p}}
+  - {name: n_watchers, type: number, preprocessing: {normalization: zscore}}
+  - {name: n_watcher_as, type: number, preprocessing: {normalization: zscore}}
+  - {name: n_watcher_countries, type: number, preprocessing: {normalization: zscore}}
+  - {name: n_attacker_as, type: number, preprocessing: {normalization: zscore}}
+  - {name: active_hours, type: number, preprocessing: {normalization: zscore}}
+  - {name: n_active_days, type: number, preprocessing: {normalization: log1p}}
+  - {name: signals_per_day, type: number, preprocessing: {normalization: log1p}}
+  - {name: max_signals_per_hour, type: number, preprocessing: {normalization: log1p}}
+  - {name: mean_gap_s, type: number, preprocessing: {normalization: zscore}}
+  - {name: median_gap_s, type: number, preprocessing: {normalization: zscore}}
+  - {name: asn_unique_ips, type: number, preprocessing: {normalization: zscore}}
+  # Attack-type shares are already in [0, 1].
+  - {name: share_http_spam, type: number, preprocessing: {normalization: null}}
+  - {name: share_http_scan, type: number, preprocessing: {normalization: null}}
+  - {name: share_http_exploit, type: number, preprocessing: {normalization: null}}
+  - {name: share_http_bruteforce, type: number, preprocessing: {normalization: null}}
+  - {name: share_http_crawl, type: number, preprocessing: {normalization: null}}
+  - {name: share_ssh_bruteforce, type: number, preprocessing: {normalization: null}}
+  - {name: share_pop3_imap_bruteforce, type: number, preprocessing: {normalization: null}}
+  - {name: share_tcp_scan, type: number, preprocessing: {normalization: null}}
+  # Shodan: 0/1 flags plus port and shared-fingerprint counts (often 0).
+  - {name: has_shodan, type: binary}
+  - {name: no_print_with_ports, type: binary}
+  - {name: n_tcp_ports, type: number, preprocessing: {normalization: zscore}}
+  - {name: n_udp_ports, type: number, preprocessing: {normalization: zscore}}
+  - {name: jarm_shared, type: number, preprocessing: {normalization: zscore}}
+  - {name: ja3s_shared, type: number, preprocessing: {normalization: zscore}}
+  - {name: headers_hash_shared, type: number, preprocessing: {normalization: zscore}}
+
+output_features:
+  - name: label
+    type: binary
+    # Only a few percent of IPs are VPN/proxy: up-weight the positive class.
+    # The weight itself is searched below.
+    loss:
+      type: binary_weighted_cross_entropy
+      positive_class_weight: 10
+
+combiner:
+  type: concat
+  num_fc_layers: 2
+  output_size: 128
+  dropout: 0.1
+  norm: batch
+
+trainer:
+  epochs: 50
+  early_stop: 5
+  batch_size: 256
+  learning_rate: 0.001
+  optimizer:
+    type: adam
+  validation_field: label
+  validation_metric: roc_auc
+
+preprocessing:
+  # Only used when a single --dataset is passed. The wrapper passes explicit
+  # training/validation sets, so the held-out test set is never seen during search.
+  split:
+    type: stratify
+    column: label
+    probabilities: [0.8, 0.2, 0.0]
+
+hyperopt:
+  goal: maximize
+  output_feature: label
+  metric: roc_auc
+  split: validation
+
+  parameters:
+    trainer.learning_rate:
+      space: loguniform
+      lower: 0.0001
+      upper: 0.01
+    trainer.batch_size:
+      space: choice
+      categories: [128, 256, 512, 1024]
+    combiner.num_fc_layers:
+      space: randint
+      lower: 1
+      upper: 4  # exclusive: 1-3 layers
+    combiner.output_size:
+      space: choice
+      categories: [64, 128, 256]
+    combiner.dropout:
+      space: uniform
+      lower: 0.0
+      upper: 0.4
+    label.loss.positive_class_weight:
+      space: choice
+      categories: [1, 5, 10, 20, 30]
+
+  search_alg:
+    type: hyperopt  # Tree-structured Parzen Estimator
+    random_state_seed: 42
+
+  executor:
+    type: ray
+    num_samples: 20
+    max_concurrent_trials: 2
+    cpu_resources_per_trial: 2
+    time_budget_s: 3600
+    # Stop clearly bad trials early.
+    scheduler:
+      type: async_hyperband
+      time_attr: time_total_s
+      max_t: 600
+      grace_period: 60
+      reduction_factor: 3

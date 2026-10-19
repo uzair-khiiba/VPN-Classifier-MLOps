@@ -1,0 +1,12 @@
+# Optional AutoML environment (src/automl_ludwig.py). Kept separate from requirements.txt
+# because Ludwig pulls in PyTorch and Ray (and its own pandas/numpy pins), which the
+# API and CI do not need. Ludwig 0.11.0 is the last release that supports Python 3.11.
+--extra-index-url https://download.pytorch.org/whl/cpu
+ludwig[hyperopt]==0.11.0
+# Ludwig's Ray hyperopt executor imports dask, which the [hyperopt] extra does not install.
+dask[dataframe]
+duckdb
+mlflow
+scikit-learn
+pyarrow
+pyyaml
