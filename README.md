@@ -86,6 +86,16 @@ It fails loudly otherwise.
 
 ## Experiments (MLflow)
 
+**Live run history:** [DagsHub MLflow, `vpn-proxy-classification`](https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow/#/experiments/0). It is a hosted MLflow server connected to this repo, so the runs can be browsed without installing anything. Locally, runs go to `mlflow.db` (`make mlflow` opens the UI).
+
+To log to DagsHub instead of the local database, set these before `make train`. Never commit the token.
+
+```bash
+export MLFLOW_TRACKING_URI=https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow
+export MLFLOW_TRACKING_USERNAME=<dagshub username>
+export MLFLOW_TRACKING_PASSWORD=<dagshub access token>
+```
+
 `make train` logs one MLflow run per candidate to experiment `vpn-proxy-classification`, with parameters, cross-validated F1, the tuned threshold and test metrics (F1, precision, recall, PR-AUC, ROC-AUC, accuracy). The best run is tagged `best_model=true`.
 
 Results on the full data (118,607 train IPs, 29,652 test IPs):
@@ -118,10 +128,10 @@ Pydantic validates every field: counts must be ≥ 0 (or ≥ 1 where an IP alway
 
 ```bash
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
-# {"is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-152046"}
+# {"is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
 
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d @examples/regular_ip.json
-# {"is_vpn_proxy":false,"probability":0.0055,"threshold":0.9015,"model_version":"hgb_slow-20261019-152046"}
+# {"is_vpn_proxy":false,"probability":0.0055,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
 
 curl -X POST "http://127.0.0.1:8000/explain?top_k=3" -H "Content-Type: application/json" -d @examples/vpn_ip.json
 # contributions: has_shodan +0.394, headers_hash_shared +0.058, n_tcp_ports +0.054
