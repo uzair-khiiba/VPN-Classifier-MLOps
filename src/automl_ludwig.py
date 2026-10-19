@@ -76,7 +76,14 @@ def positive_proba(predictions: pd.DataFrame) -> np.ndarray:
 
 def main() -> None:
     from ludwig.api import LudwigModel  # imported here: Ludwig lives in its own environment
+    from ludwig.hyperopt.execution import RayTuneExecutor
     from ludwig.hyperopt.run import hyperopt
+
+    # Ludwig 0.11 bug: after the search it re-evaluates trials that ASHA (or the time budget)
+    # stopped early, loading model/model_weights from their checkpoint - but early-stopped
+    # trials only saved training_checkpoints/, so the whole run crashes. We retrain and
+    # evaluate the best trial ourselves below, so that step is skipped.
+    RayTuneExecutor._evaluate_best_model = staticmethod(lambda *args, **kwargs: None)
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
