@@ -1,8 +1,8 @@
 {
   "model_name": "hgb_slow",
-  "version": "20261019-152046",
-  "mlflow_run_id": "a448508807cc43e395f779efaaf4cec6",
-  "trained_at": "20261019-152046",
+  "version": "20261019-173911",
+  "mlflow_run_id": "da8267f55cea492babc67c895f167337",
+  "trained_at": "20261019-173911",
   "n_train": 118607,
   "metrics": {
     "cv_f1": 0.7694,
@@ -15,7 +15,7 @@
     "test_roc_auc": 0.9877,
     "test_accuracy": 0.9905
   },
-  "file": "vpn-clf_hgb_slow_20261019-152046.joblib",
+  "file": "vpn-clf_hgb_slow_20261019-173911.joblib",
   "all_runs": {
     "logreg": {
       "cv_f1": 0.5936,
