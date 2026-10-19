@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-ludwig/
+.pytest_cache/
+.ruff_cache/
+
+# Data: only the small synthetic sample in data/sample/ is committed
+data/raw/
+data/processed/
+dataset/
+*.crdownload
+
+# MLflow and model artifacts (regenerate with `make train`)
+mlruns/
+mlartifacts/
+mlflow.db
+ludwig_results/
+.lock_preprocessing
+models/*.joblib
+!models/.gitkeep
+# The selected model (~300 KB) is committed so a fresh clone can serve the API without the dataset
+!models/model.joblib
+
+# Office lock files / editor
+~$*
+.~lock*
+.vscode/
+.idea/
+
+# Course material and third-party work kept out of the repo
+Doc_Final.docx
+crowdsec-vpn-classification-2nd-place.ipynb
+*.log
+
+# Proposal originals at the project root (copies are in docs/proposal/)
+/MLOps Course Project Proposal.docx
+/VPN_Proxy_Classification_MLOps_Proposal.pptx

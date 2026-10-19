@@ -1,0 +1,21 @@
+[project]
+name = "vpn-proxy-classifier"
+version = "1.0.0"
+description = "VPN/proxy IP classification on CrowdSec signals, served with FastAPI"
+requires-python = ">=3.11,<3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/train.py" = ["N803", "N806"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
