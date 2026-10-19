@@ -1,0 +1,76 @@
+{
+  "model_name": "hgb_slow",
+  "version": "20261019-152046",
+  "mlflow_run_id": "a448508807cc43e395f779efaaf4cec6",
+  "trained_at": "20261019-152046",
+  "n_train": 118607,
+  "metrics": {
+    "cv_f1": 0.7694,
+    "cv_pr_auc": 0.7771,
+    "threshold": 0.9015,
+    "test_f1": 0.7663,
+    "test_precision": 0.733,
+    "test_recall": 0.8028,
+    "test_pr_auc": 0.7972,
+    "test_roc_auc": 0.9877,
+    "test_accuracy": 0.9905
+  },
+  "file": "vpn-clf_hgb_slow_20261019-152046.joblib",
+  "all_runs": {
+    "logreg": {
+      "cv_f1": 0.5936,
+      "cv_pr_auc": 0.5292,
+      "threshold": 0.9393,
+      "test_f1": 0.5968,
+      "test_precision": 0.5744,
+      "test_recall": 0.6211,
+      "test_pr_auc": 0.5505,
+      "test_roc_auc": 0.9726,
+      "test_accuracy": 0.9836
+    },
+    "rf": {
+      "cv_f1": 0.7607,
+      "cv_pr_auc": 0.8105,
+      "threshold": 0.3401,
+      "test_f1": 0.7502,
+      "test_precision": 0.7081,
+      "test_recall": 0.7976,
+      "test_pr_auc": 0.804,
+      "test_roc_auc": 0.9869,
+      "test_accuracy": 0.9896
+    },
+    "rf_shallow": {
+      "cv_f1": 0.7291,
+      "cv_pr_auc": 0.7219,
+      "threshold": 0.8268,
+      "test_f1": 0.7085,
+      "test_precision": 0.7043,
+      "test_recall": 0.7128,
+      "test_pr_auc": 0.7291,
+      "test_roc_auc": 0.9869,
+      "test_accuracy": 0.9886
+    },
+    "hgb": {
+      "cv_f1": 0.7661,
+      "cv_pr_auc": 0.7722,
+      "threshold": 0.9148,
+      "test_f1": 0.7608,
+      "test_precision": 0.7316,
+      "test_recall": 0.7924,
+      "test_pr_auc": 0.7805,
+      "test_roc_auc": 0.9885,
+      "test_accuracy": 0.9903
+    },
+    "hgb_slow": {
+      "cv_f1": 0.7694,
+      "cv_pr_auc": 0.7771,
+      "threshold": 0.9015,
+      "test_f1": 0.7663,
+      "test_precision": 0.733,
+      "test_recall": 0.8028,
+      "test_pr_auc": 0.7972,
+      "test_roc_auc": 0.9877,
+      "test_accuracy": 0.9905
+    }
+  }
+}
