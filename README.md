@@ -5,6 +5,8 @@ Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how tha
 **Task:** binary classification, one prediction per attacker IP.
 **Metric:** F1 of the VPN/proxy class on a held-out test set of IPs. Only 1.95% of IPs are VPN/proxy, so accuracy is misleading: even the weakest model scores 98.4%.
 
+**Guide:** [docs/MILESTONE1_GUIDE.md](docs/MILESTONE1_GUIDE.md) gives step-by-step run instructions and explains every design decision.
+
 ## Architecture
 
 ```mermaid
