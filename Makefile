@@ -10,7 +10,7 @@ export MODEL_PATH := models/sample/model.joblib
 export MLFLOW_EXPERIMENT := vpn-proxy-classification-sample
 endif
 
-.PHONY: setup setup-automl data train automl serve mlflow test lint all clean
+.PHONY: setup setup-automl data train explain automl serve mlflow test lint all clean
 
 setup:            ## create .venv with Python 3.11 and install pinned dependencies
 	uv venv --python 3.11 .venv
@@ -25,6 +25,9 @@ data:             ## validate raw data and build per-IP train/test features (SAM
 
 train:            ## train all candidates, log them to MLflow, save the best model (SAMPLE=1: sample run, saved to models/sample/)
 	$(PY) -m src.train
+
+explain:          ## global explainability: permutation importance of the served model on the test set
+	$(PY) -m src.explain
 
 automl:           ## Ludwig hyperparameter search (configs/ludwig_automl.yaml), best trial logged to MLflow
 	.venv-ludwig/bin/python -m src.automl_ludwig $(if $(TRIALS),--num-samples $(TRIALS),)
@@ -41,7 +44,7 @@ test:
 lint:
 	$(PY) -m ruff check src tests
 
-all: data train   ## full pipeline: prepare data then train
+all: data train explain   ## full pipeline: prepare data, train, explain
 
 clean:
 	rm -rf data/processed data/processed-sample models/sample ludwig_results mlruns mlflow.db models/*.joblib models/model_meta.json
