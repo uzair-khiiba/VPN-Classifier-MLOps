@@ -41,10 +41,10 @@ make train        # train 5 candidates, log them to MLflow, save the best
 make mlflow       # MLflow UI on http://127.0.0.1:5000
 
 # Or, without the dataset: the same pipeline on the committed synthetic sample
-make data SAMPLE=1 && make train
+make data SAMPLE=1 && make train SAMPLE=1
 ```
 
-Note that `make train` replaces `models/model.joblib`. After a run on the sample, `git checkout models/` restores the committed model, which was trained on the real data.
+With `SAMPLE=1`, the outputs go to `data/processed-sample/` and `models/sample/`, so the committed model trained on the real data is never overwritten. MLflow logs these runs to a separate experiment, `vpn-proxy-classification-sample`.
 
 Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.train` and `uvicorn src.app:app`.
 

@@ -17,7 +17,7 @@ SHODAN_FILE = "shodan_df_hashed.csv"
 MODEL_PATH = Path(os.getenv("MODEL_PATH", MODELS_DIR / "model.joblib"))
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", f"sqlite:///{ROOT / 'mlflow.db'}")
-MLFLOW_EXPERIMENT = "vpn-proxy-classification"
+MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT", "vpn-proxy-classification")
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
