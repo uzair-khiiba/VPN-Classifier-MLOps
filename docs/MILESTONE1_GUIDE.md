@@ -28,7 +28,7 @@ src/                     all the code
   model_io.py            save/load the model "bundle" safely
   app.py                 step 3: FastAPI service (/predict, /explain, /health, /docs)
   automl_ludwig.py       optional: Ludwig AutoML search
-tests/                   39 pytest tests (no dataset needed)
+tests/                   40 pytest tests (no dataset needed)
 configs/ludwig_automl.yaml   Ludwig model + hyperparameter-search config
 data/sample/             small SYNTHETIC dataset with the real schema (for CI / trying it out)
 data/raw/                where the real Kaggle files go (not committed)
@@ -76,7 +76,7 @@ Stop the server with `Ctrl+C`.
 ### A4. Tests and lint
 
 ```bash
-make test     # 39 tests in ~5 s
+make test     # 40 tests in ~5 s
 make lint     # ruff; prints "All checks passed!"
 ```
 
@@ -284,12 +284,12 @@ The tracking backend is a local SQLite file, `mlflow.db`, or DagsHub when `MLFLO
   4. **Missing dependency:** the Ray executor needs `dask`, which the `[hyperopt]` extra doesn't install.
   5. **Crash bug:** Ludwig 0.11 crashes when re-evaluating ASHA-stopped trials, because their checkpoint has no saved weights. We skip that step, because we retrain the best trial ourselves.
 
-### B13. Tests (`tests/`, 39 tests)
+### B13. Tests (`tests/`, 40 tests)
 
 | File | What it proves |
 |---|---|
 | `test_prepare_data.py` | Validation catches missing columns, null IDs, bad labels and conflicting labels; time-zone-aware timestamps work; feature values match **hand-computed** numbers; Shodan parsing handles bad input; fingerprint sharing is counted correctly; the split has no leakage and is stratified; `prepare()` writes its files |
-| `test_model_io.py` | Save/load round trip; missing, corrupt and invalid bundles and bad thresholds are rejected |
+| `test_model_io.py` | Save/load round trip; missing, corrupt and invalid bundles and bad thresholds are rejected; the committed `models/model.joblib` loads and classifies both example IPs correctly |
 | `test_app.py` | `/health` with and without a model; `/predict` output and 503 without a model; 422 for negative, out-of-range, extra and missing fields; `/explain` sorted by effect; `/docs` works; the docs examples are valid |
 | `test_automl_config.py` | The Ludwig YAML matches the pipeline's features; search parameters point at real config sections. Runs without installing Ludwig |
 
@@ -337,7 +337,7 @@ Pick one for the presentation:
 | Training script: held-out test set, saved versioned model | `src/train.py` → `models/vpn-clf_<model>_<timestamp>.joblib` + `models/model.joblib` |
 | MLflow: ≥3 runs with params and metric, best run justified | 6 runs (5 sklearn + Ludwig), `best_model` tag; justification in the README "Experiments" section; DagsHub link |
 | FastAPI `src/app.py`, `/predict`, Pydantic validation, `/docs` | `src/app.py`, plus `/explain` and `/health` from our proposal |
-| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (39 tests), README "Tests" section |
+| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (40 tests), README "Tests" section |
 | CONTRIBUTION.md with names/ERP and a task table | `CONTRIBUTION.md` |
 | Per-member reflection (2–3 lines) | **TODO in `CONTRIBUTION.md`** |
 | LICENSE, AI_USAGE.md | Both present. **Finish the TODO lines in `AI_USAGE.md`** |
