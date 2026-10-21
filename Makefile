@@ -1,6 +1,15 @@
 PY ?= .venv/bin/python
 SAMPLE_FLAG := $(if $(filter 1,$(SAMPLE)),--sample,)
 
+# SAMPLE=1 runs the pipeline on the synthetic sample in separate folders, so the
+# committed real model in models/model.joblib is never overwritten.
+ifeq ($(SAMPLE),1)
+export PROCESSED_DIR := data/processed-sample
+export MODELS_DIR := models/sample
+export MODEL_PATH := models/sample/model.joblib
+export MLFLOW_EXPERIMENT := vpn-proxy-classification-sample
+endif
+
 .PHONY: setup setup-automl data train automl serve mlflow test lint all clean
 
 setup:            ## create .venv with Python 3.11 and install pinned dependencies
@@ -14,7 +23,7 @@ setup-automl:     ## separate .venv-ludwig for the optional Ludwig AutoML run (P
 data:             ## validate raw data and build per-IP train/test features (SAMPLE=1 for the small sample)
 	$(PY) -m src.prepare_data $(SAMPLE_FLAG)
 
-train:            ## train all candidates, log them to MLflow, save the best model
+train:            ## train all candidates, log them to MLflow, save the best model (SAMPLE=1: sample run, saved to models/sample/)
 	$(PY) -m src.train
 
 automl:           ## Ludwig hyperparameter search (configs/ludwig_automl.yaml), best trial logged to MLflow
@@ -35,4 +44,4 @@ lint:
 all: data train   ## full pipeline: prepare data then train
 
 clean:
-	rm -rf data/processed ludwig_results mlruns mlflow.db models/*.joblib models/model_meta.json
+	rm -rf data/processed data/processed-sample models/sample ludwig_results mlruns mlflow.db models/*.joblib models/model_meta.json
