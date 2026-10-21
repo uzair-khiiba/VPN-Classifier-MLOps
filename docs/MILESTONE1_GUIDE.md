@@ -27,16 +27,17 @@ src/                     all the code
   train.py               step 2: train 5 models, track in MLflow, save the best
   model_io.py            save/load the model "bundle" safely
   app.py                 step 3: FastAPI service (/predict, /explain, /health, /docs)
+  explain.py             global explainability: permutation importance on the test set
   automl_ludwig.py       optional: Ludwig AutoML search
-tests/                   40 pytest tests (no dataset needed)
+tests/                   43 pytest tests (no dataset needed)
 configs/ludwig_automl.yaml   Ludwig model + hyperparameter-search config
-data/sample/             small SYNTHETIC dataset with the real schema (for CI / trying it out)
+data/sample/             small SYNTHETIC dataset with the real schema (for trying it out)
 data/raw/                where the real Kaggle files go (not committed)
 models/model.joblib      the trained model the API serves (hgb_slow, 294 KB)
 models/model_meta.json   its version, MLflow run ID and the metrics of all runs
+models/feature_importance.json   global feature importance of the served model
 examples/                two example API requests (a VPN IP and a regular IP)
 docs/                    proposal (Milestone 0), progress image, this guide
-.github/workflows/ci.yml GitHub Actions: lint → tests → sample pipeline
 Makefile                 shortcuts for every step
 README.md                main documentation (results, API, design)
 CONTRIBUTION.md, AI_USAGE.md, LICENSE   required course documents
@@ -76,7 +77,7 @@ Stop the server with `Ctrl+C`.
 ### A4. Tests and lint
 
 ```bash
-make test     # 40 tests in ~5 s
+make test     # 43 tests in ~10 s
 make lint     # ruff; prints "All checks passed!"
 ```
 
@@ -89,7 +90,7 @@ make train SAMPLE=1   # trains the 5 models on the sample, logs them to MLflow, 
 
 With `SAMPLE=1`, everything goes to `data/processed-sample/` and `models/sample/`, so the real model in `models/model.joblib` is never touched. Its MLflow runs go to a separate experiment, `vpn-proxy-classification-sample`.
 
-The sample has synthetic labels, so its scores mean nothing. It only shows that the pipeline runs. CI runs exactly this.
+The sample has synthetic labels, so its scores mean nothing. It only shows that the pipeline runs.
 
 ### A6. The whole pipeline on the real data
 
@@ -111,7 +112,15 @@ The sample has synthetic labels, so its scores mean nothing. It only shows that 
 
 If the machine has less RAM, lower DuckDB's memory cap: `DUCKDB_MEMORY_LIMIT=3GB make data`. DuckDB then spills to disk and runs slower.
 
-### A7. MLflow
+### A7. Explainability
+
+```bash
+make explain   # ~30 s: permutation importance of the served model on the 29,652 test IPs
+```
+
+This writes `models/feature_importance.json` and the chart `docs/feature_importance.png`. It needs `data/processed/test.parquet`, so run `make data` first. For a single IP, call `POST /explain` on the running API (see A3).
+
+### A8. MLflow
 
 **Local:** `make mlflow`, then open http://127.0.0.1:5000 → experiment `vpn-proxy-classification`. Select all runs → **Compare**, or sort by `test_f1`. This is the screenshot for the presentation.
 
@@ -124,7 +133,7 @@ export MLFLOW_TRACKING_PASSWORD=<DagsHub token>     # never commit or share this
 make train
 ```
 
-### A8. Ludwig AutoML (optional)
+### A9. Ludwig AutoML
 
 ```bash
 make setup-automl      # separate .venv-ludwig, ~2 GB download (PyTorch CPU + Ray)
@@ -132,7 +141,7 @@ make automl TRIALS=4   # quick search, a few minutes
 make automl            # full 20-trial search, ~28 min → MLflow run "ludwig_automl"
 ```
 
-### A9. Troubleshooting
+### A10. Troubleshooting
 
 | Problem | Fix |
 |---|---|
@@ -142,7 +151,6 @@ make automl            # full 20-trial search, ~28 min → MLflow run "ludwig_au
 | `/predict` returns 422 | The request is invalid: a missing or extra field, or a value out of range. The response says which field |
 | `FileNotFoundError ... train.parq` | Put the Kaggle file in `data/raw/` (A6), or use `make data SAMPLE=1` |
 | Port 8000 already in use | `.venv/bin/python -m uvicorn src.app:app --port 8001` |
-| CI didn't start after a push | Start it manually: GitHub → Actions → CI → **Run workflow**, or `gh workflow run ci.yml --ref main` |
 
 ---
 
@@ -254,6 +262,19 @@ After building, `validate_features` checks that there is one row per IP, no NaNs
 - **`/explain`**, which is model-agnostic: for each feature, replace it with its training median, re-predict, and report `effect = original probability − new probability`. A positive effect means that feature's value pushes the IP towards VPN. This takes 28 extra predictions, which is milliseconds. It works for any model, unlike tree-specific importances, and it answers "why *this* IP?", not just "which features matter overall?".
 - **Example:** for the VPN example, `has_shodan=1` adds +0.39 and `headers_hash_shared=690` adds +0.06.
 
+### B10b. Global explainability (`src/explain.py`)
+
+`/explain` answers "why *this* IP?". Global explainability answers "what does the model rely on *overall*?"
+
+- **Method: permutation importance** on the held-out test set. Shuffle one feature's column, which breaks its link to the label while keeping its distribution. Re-score F1 at the model's own threshold (0.90). The **drop in F1** is that feature's importance. Each feature is shuffled 5 times, and we report the mean and standard deviation.
+- **Why permutation importance:**
+  - It's **model-agnostic**, so it works for logistic regression, trees and the Ludwig net alike.
+  - It measures the metric we care about (F1), on unseen data.
+  - The built-in tree importances are biased towards features with many distinct values, and they are computed on training data.
+- **Results** (test F1 drop): `has_shodan` 0.445, `n_tcp_ports` 0.348, `headers_hash_shared` 0.247, `asn_unique_ips` 0.110, then everything else under 0.04.
+- **What it means:** the model mostly recognises VPN/proxy servers by **what Shodan sees on them**: they are scanned, have open TCP ports, and share HTTP header fingerprints with many other IPs, because the same VPN software runs on many servers. ASN crowding is next, since hosting and VPN networks are crowded. The timing features (days active, gaps) differ between the classes, but add little once the Shodan features are known.
+- **Caveat for the viva:** correlated features share credit. For example, `has_shodan` and `n_tcp_ports` overlap, so shuffling one while the other stays intact understates the group's total importance.
+
 ### B11. MLflow (experiment tracking)
 
 Each candidate is one **run** in experiment `vpn-proxy-classification`, with:
@@ -284,25 +305,26 @@ The tracking backend is a local SQLite file, `mlflow.db`, or DagsHub when `MLFLO
   4. **Missing dependency:** the Ray executor needs `dask`, which the `[hyperopt]` extra doesn't install.
   5. **Crash bug:** Ludwig 0.11 crashes when re-evaluating ASHA-stopped trials, because their checkpoint has no saved weights. We skip that step, because we retrain the best trial ourselves.
 
-### B13. Tests (`tests/`, 40 tests)
+### B13. Tests (`tests/`, 43 tests)
 
 | File | What it proves |
 |---|---|
 | `test_prepare_data.py` | Validation catches missing columns, null IDs, bad labels and conflicting labels; time-zone-aware timestamps work; feature values match **hand-computed** numbers; Shodan parsing handles bad input; fingerprint sharing is counted correctly; the split has no leakage and is stratified; `prepare()` writes its files |
 | `test_model_io.py` | Save/load round trip; missing, corrupt and invalid bundles and bad thresholds are rejected; the committed `models/model.joblib` loads and classifies both example IPs correctly |
 | `test_app.py` | `/health` with and without a model; `/predict` output and 503 without a model; 422 for negative, out-of-range, extra and missing fields; `/explain` sorted by effect; `/docs` works; the docs examples are valid |
+| `test_explain.py` | Permutation importance ranks the one informative feature first; the F1 scorer respects the threshold; the chart is written |
 | `test_automl_config.py` | The Ludwig YAML matches the pipeline's features; search parameters point at real config sections. Runs without installing Ludwig |
 
-The tests use **small hand-made datasets** (`tests/conftest.py`), so they run in 5 seconds without the 700 MB file.
+The tests use **small hand-made datasets** (`tests/conftest.py`), so they run in about 10 seconds without the 700 MB file.
 
-### B14. CI, Git and reproducibility
+### B14. Git and reproducibility
 
-- **CI** (`.github/workflows/ci.yml`): `lint` (ruff) → `test` (pytest) → end-to-end `prepare_data --sample` and `train` on the synthetic sample. It runs on push, on PRs to main, and manually.
 - **Reproducibility:**
   - Dependency versions are pinned in `requirements.txt`, and Python is fixed at 3.11.
   - Every random step uses `random_state=42`. Retraining on DagsHub gave *exactly* the same metrics.
   - The trained model is committed, so a clone runs the API immediately.
 - **Git workflow:** feature branches (`feat/`, `fix/`, `infra/`, `docs/`) merged into `main` with merge commits.
+- **CI/CD** (GitHub Actions lint, test and Docker build jobs, plus deployment) is Milestone 2 work, so Milestone 1 has no workflow file.
 
 ### B15. Design trade-offs (for the 1–2 minute discussion)
 
@@ -320,11 +342,12 @@ Pick one for the presentation:
 - **What happens if someone sends bad input?** Pydantic returns 422 with the field and the reason. Unknown fields are rejected too.
 - **What if the model file is missing?** `/health` reports `degraded` with the reason, and `/predict` returns 503. The API doesn't crash.
 - **How does /explain work?** It replaces one feature at a time with its training median and measures the change in probability. It is model-agnostic.
+- **Which features matter most overall, and how do you know?** Permutation importance on the test set: shuffling `has_shodan` drops test F1 by 0.445, `n_tcp_ports` by 0.348 and `headers_hash_shared` by 0.247. We use permutation importance rather than the trees' built-in importance because it measures F1 on unseen data and works for any model.
 - **What is PR-AUC and why report it?** The area under the precision-recall curve. It measures ranking quality on the rare class, independent of the threshold, and is more informative than ROC-AUC under heavy imbalance: ROC-AUC is 0.97–0.99 for every model.
 - **Where did the feature ideas come from?** They were adapted from the public 2nd-place Kaggle notebook and credited in the README. Our code is a reimplementation, in DuckDB instead of pandas.
 - **How would you add a new model?** Add one entry to `CANDIDATES` in `src/train.py`. It is automatically cross-validated, logged to MLflow and considered for selection.
 - **What does `asn_unique_ips` capture?** How crowded the IP's network is. Hosting and VPN networks host many attacker IPs.
-- **Why is the Ludwig environment separate?** Ludwig brings PyTorch and Ray (~2 GB) and its own version pins. The API and CI don't need it.
+- **Why is the Ludwig environment separate?** Ludwig brings PyTorch and Ray (~2 GB) and its own version pins. The API doesn't need it.
 
 ---
 
@@ -337,8 +360,10 @@ Pick one for the presentation:
 | Training script: held-out test set, saved versioned model | `src/train.py` → `models/vpn-clf_<model>_<timestamp>.joblib` + `models/model.joblib` |
 | MLflow: ≥3 runs with params and metric, best run justified | 6 runs (5 sklearn + Ludwig), `best_model` tag; justification in the README "Experiments" section; DagsHub link |
 | FastAPI `src/app.py`, `/predict`, Pydantic validation, `/docs` | `src/app.py`, plus `/explain` and `/health` from our proposal |
-| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (40 tests), README "Tests" section |
+| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (43 tests), README "Tests" section |
+| AutoML (teacher's request) | Ludwig: `configs/ludwig_automl.yaml`, `src/automl_ludwig.py`, MLflow run `ludwig_automl`, README "AutoML with Ludwig" |
+| Explainability (teacher's request) | Global: `src/explain.py` → `models/feature_importance.json`, `docs/feature_importance.png`. Local: `POST /explain`. README "Explainability" |
 | CONTRIBUTION.md with names/ERP and a task table | `CONTRIBUTION.md` |
 | Per-member reflection (2–3 lines) | **TODO in `CONTRIBUTION.md`** |
 | LICENSE, AI_USAGE.md | Both present. **Finish the TODO lines in `AI_USAGE.md`** |
-| Tag `v1.0-milestone1` on a commit where CI passes | **To do**, after the TODOs above (CI passes on `main`) |
+| Tag `v1.0-milestone1` | **To do**, after the TODOs above |

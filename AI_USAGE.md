@@ -6,7 +6,7 @@ The course policy allows AI coding assistants for boilerplate, debugging and doc
 
 | Tool | Used for |
 |---|---|
-| Claude Code (Anthropic) | Reviewing the proposal against the course spec; drafting the project structure, data-preparation and training scripts, FastAPI service, tests, Ludwig config, CI workflow and documentation; debugging Ludwig installation and configuration issues |
+| Claude Code (Anthropic) | Reviewing the proposal against the course spec; drafting the project structure, data-preparation and training scripts, FastAPI service, explainability module, tests, Ludwig config and documentation; debugging Ludwig installation and configuration issues |
 
 ## Our own work and design decisions
 
