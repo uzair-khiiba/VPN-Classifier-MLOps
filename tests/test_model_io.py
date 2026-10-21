@@ -1,6 +1,11 @@
+import json
+
 import joblib
+import pandas as pd
 import pytest
 
+from src.config import MODEL_PATH, ROOT
+from src.features import FEATURES
 from src.model_io import ModelLoadError, load_bundle, save_bundle
 
 
@@ -41,3 +46,14 @@ def test_load_bundle_rejects_bad_threshold(model_path, tmp_path):
 def test_save_bundle_requires_all_keys(tmp_path):
     with pytest.raises(ValueError, match="missing keys"):
         save_bundle({"model": object()}, tmp_path / "m.joblib")
+
+
+@pytest.mark.skipif(not MODEL_PATH.exists(), reason="no trained model in models/")
+def test_committed_model_loads_and_predicts_examples():
+    """The model the API serves (models/model.joblib) loads and gets both example IPs right."""
+    bundle = load_bundle(MODEL_PATH)
+    assert bundle["features"] == FEATURES
+    for name, expected in (("vpn_ip.json", True), ("regular_ip.json", False)):
+        row = json.loads((ROOT / "examples" / name).read_text())
+        proba = bundle["model"].predict_proba(pd.DataFrame([row])[bundle["features"]])[0, 1]
+        assert bool(proba >= bundle["threshold"]) is expected, name

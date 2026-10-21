@@ -19,6 +19,14 @@ flowchart LR
     E --> F["src/app.py (FastAPI)<br/>/predict · /explain · /health · /docs"]
 ```
 
+Plain-text version:
+
+```
+data/raw/train.parq ─► prepare_data.py ─► data/processed/ ─► train.py ─► models/model.joblib ─► app.py (FastAPI)
+  (61.6M signals)      validate + per-IP    (148,259 IPs,     5 models,     (best model +         /predict /explain
+                       features + split      80/20 split)     MLflow        F1 threshold)          /health /docs
+```
+
 ## Quick start
 
 Requires [uv](https://docs.astral.sh/uv/) and `make`. uv downloads Python 3.11 if needed.
@@ -160,14 +168,14 @@ Ludwig has its own environment because of its size; the API and CI don't need it
 ## Tests
 
 ```bash
-make test         # pytest: 39 tests, ~5 s, no dataset needed
+make test         # pytest: 40 tests, ~5 s, no dataset needed
 make lint         # ruff
 ```
 
 | File | Covers |
 |---|---|
 | `tests/test_prepare_data.py` | Validation (missing columns, null IDs, bad or conflicting labels, time-zone-aware timestamps), hand-checked feature values, Shodan parsing and fingerprint sharing, split leakage and stratification, end-to-end `prepare()` |
-| `tests/test_model_io.py` | Model bundle save/load round trip; missing, corrupt and invalid files; bad thresholds |
+| `tests/test_model_io.py` | Model bundle save/load round trip; missing, corrupt and invalid files; bad thresholds; the committed `models/model.joblib` loads and classifies both example IPs correctly |
 | `tests/test_app.py` | `/health` with and without a model, `/predict` output, 422 on invalid or missing or extra fields, `/explain` ordering, `/docs`, docs examples are valid requests |
 | `tests/test_automl_config.py` | Ludwig config matches the pipeline's features; search parameters point at real config sections (no Ludwig install needed) |
 
