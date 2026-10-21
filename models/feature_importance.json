@@ -1,0 +1,148 @@
+{
+  "model": "hgb_slow-20261019-173911",
+  "metric": "test F1 drop",
+  "n_test": 29652,
+  "n_repeats": 5,
+  "importance": [
+    {
+      "feature": "has_shodan",
+      "f1_drop": 0.4454,
+      "f1_drop_std": 0.009
+    },
+    {
+      "feature": "n_tcp_ports",
+      "f1_drop": 0.3477,
+      "f1_drop_std": 0.0054
+    },
+    {
+      "feature": "headers_hash_shared",
+      "f1_drop": 0.2473,
+      "f1_drop_std": 0.0016
+    },
+    {
+      "feature": "asn_unique_ips",
+      "f1_drop": 0.1101,
+      "f1_drop_std": 0.0059
+    },
+    {
+      "feature": "share_http_scan",
+      "f1_drop": 0.0391,
+      "f1_drop_std": 0.0017
+    },
+    {
+      "feature": "jarm_shared",
+      "f1_drop": 0.0363,
+      "f1_drop_std": 0.0021
+    },
+    {
+      "feature": "n_attack_types",
+      "f1_drop": 0.0257,
+      "f1_drop_std": 0.002
+    },
+    {
+      "feature": "share_http_bruteforce",
+      "f1_drop": 0.0251,
+      "f1_drop_std": 0.0032
+    },
+    {
+      "feature": "share_http_spam",
+      "f1_drop": 0.0197,
+      "f1_drop_std": 0.0033
+    },
+    {
+      "feature": "share_http_exploit",
+      "f1_drop": 0.0181,
+      "f1_drop_std": 0.0031
+    },
+    {
+      "feature": "ja3s_shared",
+      "f1_drop": 0.0157,
+      "f1_drop_std": 0.0031
+    },
+    {
+      "feature": "signals_per_day",
+      "f1_drop": 0.0148,
+      "f1_drop_std": 0.0029
+    },
+    {
+      "feature": "n_watcher_countries",
+      "f1_drop": 0.0121,
+      "f1_drop_std": 0.0068
+    },
+    {
+      "feature": "n_active_days",
+      "f1_drop": 0.0112,
+      "f1_drop_std": 0.0025
+    },
+    {
+      "feature": "max_signals_per_hour",
+      "f1_drop": 0.0095,
+      "f1_drop_std": 0.003
+    },
+    {
+      "feature": "n_watcher_as",
+      "f1_drop": 0.0073,
+      "f1_drop_std": 0.0018
+    },
+    {
+      "feature": "share_http_crawl",
+      "f1_drop": 0.0056,
+      "f1_drop_std": 0.0007
+    },
+    {
+      "feature": "n_udp_ports",
+      "f1_drop": 0.0055,
+      "f1_drop_std": 0.0019
+    },
+    {
+      "feature": "mean_gap_s",
+      "f1_drop": 0.0034,
+      "f1_drop_std": 0.0017
+    },
+    {
+      "feature": "n_watchers",
+      "f1_drop": 0.0034,
+      "f1_drop_std": 0.001
+    },
+    {
+      "feature": "share_pop3_imap_bruteforce",
+      "f1_drop": 0.0014,
+      "f1_drop_std": 0.0005
+    },
+    {
+      "feature": "no_print_with_ports",
+      "f1_drop": 0.0013,
+      "f1_drop_std": 0.0
+    },
+    {
+      "feature": "share_tcp_scan",
+      "f1_drop": 0.001,
+      "f1_drop_std": 0.001
+    },
+    {
+      "feature": "share_ssh_bruteforce",
+      "f1_drop": 0.0008,
+      "f1_drop_std": 0.0009
+    },
+    {
+      "feature": "n_attacker_as",
+      "f1_drop": 0.0,
+      "f1_drop_std": 0.0
+    },
+    {
+      "feature": "median_gap_s",
+      "f1_drop": -0.0001,
+      "f1_drop_std": 0.0023
+    },
+    {
+      "feature": "active_hours",
+      "f1_drop": -0.0017,
+      "f1_drop_std": 0.0017
+    },
+    {
+      "feature": "n_signals",
+      "f1_drop": -0.0022,
+      "f1_drop_std": 0.0026
+    }
+  ]
+}

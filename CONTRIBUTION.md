@@ -32,7 +32,8 @@ The group has two members, which the instructor approved.
 | Ludwig AutoML search | `configs/ludwig_automl.yaml`, `src/automl_ludwig.py` | Uzair Ahmed Khuhro |
 | FastAPI service (`/predict`, `/explain`, `/health`) | `src/app.py` | Uzair Ahmed Khuhro |
 | Model-loading and API tests | `tests/test_model_io.py`, `tests/test_app.py` | Uzair Ahmed Khuhro |
-| CI workflow, Makefile, tooling | `.github/workflows/ci.yml`, `Makefile`, `pyproject.toml` | Uzair Ahmed Khuhro |
+| Explainability (global permutation importance, `/explain`) | `src/explain.py`, `src/app.py`, `tests/test_explain.py` | Uzair Ahmed Khuhro |
+| Makefile, tooling | `Makefile`, `pyproject.toml` | Uzair Ahmed Khuhro |
 | README, documentation | `README.md`, `AI_USAGE.md` | Uzair Ahmed Khuhro |
 | Milestone 1 presentation | | Uzair Ahmed Khuhro |
 

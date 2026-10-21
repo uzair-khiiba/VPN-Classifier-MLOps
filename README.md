@@ -14,7 +14,8 @@ flowchart LR
     A["Raw signals<br/>train.parq (61.6M rows)<br/>+ shodan_df_hashed.csv"] --> B["src/prepare_data.py<br/>validate → per-IP features<br/>(DuckDB) → stratified split"]
     B --> C["data/processed/<br/>train.parquet / test.parquet<br/>(148,259 IPs)"]
     C --> D["src/train.py<br/>5 candidates, 5-fold CV<br/>MLflow tracking"]
-    C -.-> L["src/automl_ludwig.py<br/>Ludwig AutoML search<br/>(optional, logged to MLflow)"]
+    C --> L["src/automl_ludwig.py<br/>Ludwig AutoML search<br/>(logged to MLflow)"]
+    E --> X["src/explain.py<br/>permutation importance<br/>(global explainability)"]
     D --> E["models/model.joblib<br/>best model + F1 threshold"]
     E --> F["src/app.py (FastAPI)<br/>/predict · /explain · /health · /docs"]
 ```
@@ -46,6 +47,7 @@ To rebuild the model from scratch:
 # Full data (see "Dataset" for the download): ~3 min prep + ~11 min training on 4 CPU cores
 make data         # validate data/raw/train.parq, build per-IP features, split
 make train        # train 5 candidates, log them to MLflow, save the best
+make explain      # global explainability: permutation importance on the test set (~30 s)
 make mlflow       # MLflow UI on http://127.0.0.1:5000
 
 # Or, without the dataset: the same pipeline on the committed synthetic sample
@@ -67,7 +69,7 @@ Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.
 
 Download both from Kaggle and place them in `data/raw/`. They are not committed: `train.parq` is 700 MB. Kaggle's `test.parq` has no labels and isn't used. Our test set is a held-out 20% of the labelled IPs.
 
-`data/sample/` holds a small **synthetic** dataset with the same schema, used by CI and for trying the pipeline without the download.
+`data/sample/` holds a small **synthetic** dataset with the same schema, for trying the pipeline without the download.
 
 ## How it works
 
@@ -149,7 +151,27 @@ curl -X POST "http://127.0.0.1:8000/explain?top_k=3" -H "Content-Type: applicati
 
 `examples/` contains two typical IPs from the held-out test set: a VPN/proxy IP and a regular one.
 
-## AutoML with Ludwig (optional)
+## Explainability
+
+The model is explained at two levels.
+
+**Global: which features the model relies on.** `make explain` runs `src/explain.py`, which computes permutation importance on the 29,652 held-out test IPs. It shuffles one feature at a time, which breaks that feature's link to the label, and measures how much test F1 drops at the model's own threshold. Each feature is shuffled 5 times. The results are in `models/feature_importance.json` and the chart below.
+
+![Permutation importance](docs/feature_importance.png)
+
+| Rank | Feature | Test F1 drop when shuffled |
+|---|---|---|
+| 1 | `has_shodan` | 0.445 |
+| 2 | `n_tcp_ports` | 0.348 |
+| 3 | `headers_hash_shared` | 0.247 |
+| 4 | `asn_unique_ips` | 0.110 |
+| 5 | `share_http_scan` | 0.039 |
+
+The Shodan view of an IP dominates: whether Shodan saw it at all, how many TCP ports are open, and how many other IPs share its HTTP header fingerprint. VPN and proxy servers run the same software on the same ports, so they share fingerprints. ASN crowding comes next, since hosting and VPN networks contain many attacker IPs. The attack-timing features add comparatively little once those are known.
+
+**Local: why this IP got this prediction.** `POST /explain` replaces one feature at a time with its training median, re-predicts, and reports how much the probability changes. For the VPN example, `has_shodan=1` adds +0.39 and `headers_hash_shared=690` adds +0.06. Both methods are model-agnostic, so they work unchanged for any model the pipeline selects.
+
+## AutoML with Ludwig
 
 `configs/ludwig_automl.yaml` defines a [Ludwig](https://ludwig.ai/) tabular neural network on the same 28 features, with a hyperparameter search over:
 - learning rate and batch size
@@ -163,12 +185,12 @@ make setup-automl          # separate .venv-ludwig: Ludwig 0.11.0 + PyTorch (CPU
 make automl                # full search, ~28 min on 4 CPU cores (TRIALS=4 for a quick one)
 ```
 
-Ludwig has its own environment because of its size; the API and CI don't need it. 0.11.0 is the last Ludwig release that supports Python 3.11. `src/automl_ludwig.py` disables one Ludwig 0.11 post-search step that crashes when re-evaluating trials ASHA stopped early; the runner retrains and evaluates the best trial itself instead.
+Ludwig has its own environment because of its size; the API doesn't need it. 0.11.0 is the last Ludwig release that supports Python 3.11. `src/automl_ludwig.py` disables one Ludwig 0.11 post-search step that crashes when re-evaluating trials ASHA stopped early; the runner retrains and evaluates the best trial itself instead.
 
 ## Tests
 
 ```bash
-make test         # pytest: 40 tests, ~5 s, no dataset needed
+make test         # pytest: 43 tests, ~10 s, no dataset needed
 make lint         # ruff
 ```
 
@@ -177,18 +199,17 @@ make lint         # ruff
 | `tests/test_prepare_data.py` | Validation (missing columns, null IDs, bad or conflicting labels, time-zone-aware timestamps), hand-checked feature values, Shodan parsing and fingerprint sharing, split leakage and stratification, end-to-end `prepare()` |
 | `tests/test_model_io.py` | Model bundle save/load round trip; missing, corrupt and invalid files; bad thresholds; the committed `models/model.joblib` loads and classifies both example IPs correctly |
 | `tests/test_app.py` | `/health` with and without a model, `/predict` output, 422 on invalid or missing or extra fields, `/explain` ordering, `/docs`, docs examples are valid requests |
+| `tests/test_explain.py` | Permutation importance ranks the one informative feature first; the F1 scorer respects the threshold; the chart is written |
 | `tests/test_automl_config.py` | Ludwig config matches the pipeline's features; search parameters point at real config sections (no Ludwig install needed) |
-
-CI (`.github/workflows/ci.yml`) runs ruff, then pytest, then the whole pipeline on the synthetic sample, on every push.
 
 ## Repository layout
 
 ```
-src/            config, features, prepare_data, train, model_io, app (FastAPI), automl_ludwig
+src/            config, features, prepare_data, train, model_io, app (FastAPI), explain, automl_ludwig
 tests/          pytest suite and synthetic-data fixtures
 configs/        Ludwig AutoML config
 data/sample/    small synthetic dataset (raw data goes in data/raw/, not committed)
-models/         model.joblib (served model) and model_meta.json (its metrics and MLflow run ID)
+models/         model.joblib (served model), model_meta.json (its metrics and MLflow run ID), feature_importance.json
 examples/       example request bodies
 ```
 
