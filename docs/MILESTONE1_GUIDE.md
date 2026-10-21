@@ -84,9 +84,10 @@ make lint     # ruff; prints "All checks passed!"
 
 ```bash
 make data SAMPLE=1    # validates data/sample/, builds features, splits 240 train / 60 test IPs
-make train            # trains the 5 models on the sample and logs them to MLflow
-git checkout models/  # IMPORTANT: restores the real model (train overwrote it with a sample-trained one)
+make train SAMPLE=1   # trains the 5 models on the sample, logs them to MLflow, saves to models/sample/
 ```
+
+With `SAMPLE=1`, everything goes to `data/processed-sample/` and `models/sample/`, so the real model in `models/model.joblib` is never touched. Its MLflow runs go to a separate experiment, `vpn-proxy-classification-sample`.
 
 The sample has synthetic labels, so its scores mean nothing. It only shows that the pipeline runs. CI runs exactly this.
 
@@ -136,7 +137,7 @@ make automl            # full 20-trial search, ~28 min → MLflow run "ludwig_au
 | Problem | Fix |
 |---|---|
 | `make: uv: command not found` | Install uv (A1), then open a new terminal |
-| `/health` says `"degraded"` | `models/model.joblib` is missing or broken: `git checkout models/` |
+| `/health` says `"degraded"` | `models/model.joblib` is missing or broken: restore it from the repo or the submission zip |
 | `/predict` returns 503 | Same as above: no model is loaded |
 | `/predict` returns 422 | The request is invalid: a missing or extra field, or a value out of range. The response says which field |
 | `FileNotFoundError ... train.parq` | Put the Kaggle file in `data/raw/` (A6), or use `make data SAMPLE=1` |

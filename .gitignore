@@ -7,8 +7,10 @@ __pycache__/
 .ruff_cache/
 
 # Data: only the small synthetic sample in data/sample/ is committed
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
 data/processed/
+data/processed-sample/
 dataset/
 *.crdownload
 
@@ -19,6 +21,7 @@ mlflow.db
 ludwig_results/
 .lock_preprocessing
 models/*.joblib
+models/sample/
 !models/.gitkeep
 # The selected model (~300 KB) is committed so a fresh clone can serve the API without the dataset
 !models/model.joblib
