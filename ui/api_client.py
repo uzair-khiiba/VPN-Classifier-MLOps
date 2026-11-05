@@ -34,6 +34,10 @@ class ApiResponseError(ApiError):
     """The backend answered with something this client cannot use."""
 
 
+class ApiNotFoundError(ApiError):
+    """The backend has no record of what was asked for (HTTP 404), e.g. an IP that is not in the test set."""
+
+
 class ApiInvalidInputError(ApiError):
     """The backend rejected the input (HTTP 422)."""
 
@@ -91,6 +95,9 @@ class ApiClient:
                                    f"(HTTP {response.status_code}).") from exc
         if response.status_code == 422:
             raise self._invalid_input(body)
+        if response.status_code == 404:
+            detail = body.get("detail") if isinstance(body, dict) else None
+            raise ApiNotFoundError(str(detail or "Not found."))
         if response.status_code == 503:
             detail = body.get("detail") if isinstance(body, dict) else None
             raise ModelUnavailableError(str(detail or "The API is running, but no model is loaded."))
@@ -126,6 +133,17 @@ class ApiClient:
         required = ("prediction", "label", "probability", "threshold", "model_version")
         return self._request("POST", "/predict", required=required, json=features)
 
+    def predict_ip(self, ip_id: int) -> ApiResult:
+        """Score an IP from the held-out test set by its ID; the API fetches its features."""
+        required = ("prediction", "label", "probability", "threshold", "model_version", "features", "actual_label")
+        return self._request("GET", f"/predict/ip/{int(ip_id)}", required=required)
+
+    def predict_signals(self, signals: list[dict], shodan_ports: dict) -> ApiResult:
+        """Score a new IP from its raw signals; the API computes the 28 features."""
+        required = ("prediction", "label", "probability", "threshold", "model_version", "features")
+        return self._request("POST", "/predict/signals", required=required,
+                             json={"signals": signals, "shodan_ports": shodan_ports})
+
     def explain(self, features: dict, top_k: int = 8) -> ApiResult:
         required = ("label", "probability", "threshold", "method", "contributions")
         result = self._request("POST", "/explain", required=required, json=features, params={"top_k": top_k})
@@ -145,3 +163,9 @@ class ApiClient:
         if not specs:
             raise ApiResponseError("/openapi.json does not describe the model's input features.")
         return specs, schema.get("examples", [])
+
+    def signals_example(self) -> dict | None:
+        """The example raw-signals request the API documents, or None if it has none."""
+        spec = self._request("GET", "/openapi.json", required=("components",)).data
+        examples = spec.get("components", {}).get("schemas", {}).get("SignalsRequest", {}).get("examples") or [None]
+        return examples[0] if isinstance(examples[0], dict) else None

@@ -31,8 +31,9 @@ def render() -> None:
         with column.container(border=True):
             st.markdown(f"**{title}**")
             st.caption(text)
-    st.info("An IP address alone is not enough. The model needs the 28 aggregated features, and this project has "
-            "no service that looks them up for a new IP.", icon=":material/info:")
+    st.info("Score an IP three ways on the IP Detection page: look up an IP from the held-out test set by its ID, "
+            "enter a new IP's raw attack events and let the API compute the features, or enter all 28 features "
+            "yourself.", icon=":material/info:")
 
     st.subheader("Served model")
     st.caption("Saved evaluation results on the held-out test set. These are not live statistics.")

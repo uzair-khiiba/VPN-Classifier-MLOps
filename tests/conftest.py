@@ -8,6 +8,18 @@ from sklearn.linear_model import LogisticRegression
 from src.features import FEATURES
 
 
+def consistent_features(**changes) -> dict:
+    """28 features that satisfy every rule the API checks (whole counts, 0/1 flags, consistent totals)."""
+    features = {f: 0.0 for f in FEATURES}
+    features.update(n_signals=12, n_attack_types=2, n_watchers=3, n_watcher_as=2, n_watcher_countries=2,
+                    n_attacker_as=1, active_hours=2.0, n_active_days=2, signals_per_day=6.0, max_signals_per_hour=3,
+                    mean_gap_s=5.0, median_gap_s=3.0, asn_unique_ips=40, share_http_scan=0.5,
+                    share_http_exploit=0.25, has_shodan=1, n_tcp_ports=2, n_udp_ports=0, jarm_shared=1,
+                    ja3s_shared=1, headers_hash_shared=4, no_print_with_ports=0)
+    features.update(changes)
+    return features
+
+
 def make_signals(n_ips: int = 40, seed: int = 0) -> pd.DataFrame:
     """Synthetic raw signals with the same columns as the Kaggle train.parq."""
     rng = np.random.default_rng(seed)

@@ -19,10 +19,10 @@ The dataset is correct and the pipeline can run on it. Four things need care:
 | RAM | 19.9 GB total, 7.4 GB free when checked | Data prep is capped at about 6 GB by DuckDB and can spill to disk |
 | Disk | 38.8 GB free | Enough |
 | Python | 3.12.2 in `.venv` | `pyproject.toml` asks for `>=3.11,<3.12`. The project ran on 3.11 originally, so exact numbers could in principle differ |
-| Packages | All 14 pins in `requirements.txt` match | `dagshub` 0.7.3 and `matplotlib` 3.11.2 are installed but not pinned |
+| Packages | All 14 pins in `requirements.txt` match | `matplotlib` 3.11.2 is installed but not pinned |
 | `make`, `uv` | Not installed | Makefile targets also use Unix paths (`.venv/bin/python`), so we use `python -m ...` directly |
 | Tests and lint | 43 passed, ruff clean | Run in `.venv` before any experiment code was added |
-| Git remote | GitHub (`uzair-khiiba/VPN-Classifier-MLOps`) | The brief says the project came from DagsHub, but `origin` points to GitHub. No effect on the work |
+| Git remote | GitHub (`uzair-khiiba/VPN-Classifier-MLOps`) | |
 
 ## Configured paths (`src/config.py`)
 
@@ -102,16 +102,8 @@ The dataset is correct and the pipeline can run on it. Four things need care:
 | Documentation says | What was found | Consequence |
 |---|---|---|
 | `hgb_slow` uses 600 iterations | `early_stopping='auto'` is active above 10,000 rows. The committed model has `n_iter_ = 94` | `max_iter=600` is only a ceiling. Early stopping also holds back 10% of each training fold |
-| 6 MLflow runs including `ludwig_automl` | DagsHub's `vpn-proxy-classification` experiment has 5 runs, none from Ludwig | The Ludwig 0.711 result has no tracked record in that experiment |
 | Progress image: 39 tests and a CI workflow | 43 tests and no workflow file | The image is outdated |
 | `n_attacker_as` etc. | 70 IPs appear in more than one ASN | Harmless, `asn_unique_ips` uses the largest ASN |
-
-## MLflow and DagsHub
-
-- `dagshub.init()` authenticates as `Zainabsoomro304`. It needs a longer client timeout, because the default 30 s failed once and init took 73 s when it succeeded.
-- Tracking URI: `https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow`.
-- The 5 existing runs were read and their F1 scores match `models/model_meta.json`. They are never written to.
-- Write access is tested separately when `zainab_experiments` is created. Local tracking is the fallback.
 
 ## Ludwig feasibility
 

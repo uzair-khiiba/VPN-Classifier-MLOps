@@ -1,0 +1,95 @@
+{
+  "signals": [
+    {
+      "attack_time": "2023-08-04T02:12:21Z",
+      "attack_type": "http:exploit",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 10462,
+      "watcher_as_num": 0,
+      "watcher_country": null
+    },
+    {
+      "attack_time": "2023-08-04T02:12:21Z",
+      "attack_type": "http:spam",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 10462,
+      "watcher_as_num": 0,
+      "watcher_country": null
+    },
+    {
+      "attack_time": "2023-08-04T02:12:21Z",
+      "attack_type": "http:spam",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 10462,
+      "watcher_as_num": 0,
+      "watcher_country": null
+    },
+    {
+      "attack_time": "2023-08-05T02:18:03Z",
+      "attack_type": "http:exploit",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 12950,
+      "watcher_as_num": 47583,
+      "watcher_country": "FR"
+    },
+    {
+      "attack_time": "2023-08-05T02:18:03Z",
+      "attack_type": "http:spam",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 12950,
+      "watcher_as_num": 47583,
+      "watcher_country": "FR"
+    },
+    {
+      "attack_time": "2023-08-05T02:18:03Z",
+      "attack_type": "http:spam",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 12950,
+      "watcher_as_num": 47583,
+      "watcher_country": "FR"
+    },
+    {
+      "attack_time": "2023-08-05T02:48:09Z",
+      "attack_type": "http:spam",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 9908,
+      "watcher_as_num": 14061,
+      "watcher_country": "GB"
+    },
+    {
+      "attack_time": "2023-08-05T02:48:09Z",
+      "attack_type": "http:scan",
+      "attacker_as_num": 55286,
+      "watcher_uuid_enum": 9908,
+      "watcher_as_num": 14061,
+      "watcher_country": "GB"
+    }
+  ],
+  "shodan_ports": {
+    "80/tcp": {
+      "jarm": null,
+      "ja3s": null,
+      "headers_hash": 706837694
+    },
+    "3128/tcp": {
+      "jarm": null,
+      "ja3s": null,
+      "headers_hash": 706837694
+    },
+    "8000/tcp": {
+      "jarm": null,
+      "ja3s": null,
+      "headers_hash": 706837694
+    },
+    "8080/tcp": {
+      "jarm": null,
+      "ja3s": null,
+      "headers_hash": 706837694
+    },
+    "8800/tcp": {
+      "jarm": null,
+      "ja3s": null,
+      "headers_hash": 706837694
+    }
+  }
+}

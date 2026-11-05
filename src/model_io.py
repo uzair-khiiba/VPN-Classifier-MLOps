@@ -40,6 +40,18 @@ def load_bundle(path: Path) -> dict:
         raise ModelLoadError(f"{path} is not a valid model bundle")
     if not hasattr(bundle["model"], "predict_proba"):
         raise ModelLoadError("bundled model has no predict_proba")
-    if not 0.0 < float(bundle["threshold"]) < 1.0:
+    try:
+        threshold = float(bundle["threshold"])
+    except (TypeError, ValueError) as exc:
+        raise ModelLoadError(f"threshold is not a number: {bundle['threshold']!r}") from exc
+    if not 0.0 < threshold < 1.0:
         raise ModelLoadError(f"invalid threshold {bundle['threshold']}")
+    features = bundle["features"]
+    if not isinstance(features, list | tuple) or not features or not all(isinstance(f, str) for f in features):
+        raise ModelLoadError("bundle features must be a non-empty list of names")
+    missing = [f for f in features if f not in bundle["reference"]]
+    if missing:
+        raise ModelLoadError(f"bundle reference has no median for: {missing}")
+    if not isinstance(bundle["metadata"], dict) or {"model_name", "version"} - bundle["metadata"].keys():
+        raise ModelLoadError("bundle metadata needs model_name and version")
     return bundle

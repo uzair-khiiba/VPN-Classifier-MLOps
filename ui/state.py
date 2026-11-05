@@ -6,6 +6,7 @@ from ui.api_client import (
     START_COMMAND,
     ApiClient,
     ApiInvalidInputError,
+    ApiNotFoundError,
     ApiUnavailableError,
     ModelUnavailableError,
     get_api_base_url,
@@ -17,6 +18,7 @@ LAST_FEATURES = "last_features"
 LAST_SOURCE = "last_source"
 LAST_PREDICTION = "last_prediction"
 LAST_EXPLANATION = "last_explanation"
+LAST_ACTUAL = "last_actual"  # the true class, when the IP came from the held-out test set
 
 
 @st.cache_resource(show_spinner=False)
@@ -32,6 +34,12 @@ def clear_explanation() -> None:
     st.session_state.pop(LAST_EXPLANATION, None)
 
 
+def clear_result() -> None:
+    """Forget the last prediction, so a failed request can never leave an old result on screen."""
+    for key in (LAST_PREDICTION, LAST_EXPLANATION, LAST_ACTUAL, LAST_SOURCE):
+        st.session_state.pop(key, None)
+
+
 def show_api_error(error: Exception) -> None:
     """Explain a failed request. Nothing is shown as a result, so a failure can't look like a prediction."""
     if isinstance(error, ApiUnavailableError):
@@ -40,6 +48,8 @@ def show_api_error(error: Exception) -> None:
         st.code(START_COMMAND, language=None)
     elif isinstance(error, ModelUnavailableError):
         st.warning(f"The API is running, but cannot predict. {error}", icon=":material/warning:")
+    elif isinstance(error, ApiNotFoundError):
+        st.warning(str(error), icon=":material/search_off:")
     elif isinstance(error, ApiInvalidInputError):
         st.error("The API rejected the input.", icon=":material/error:")
         for field, message in error.field_errors:
