@@ -210,7 +210,7 @@ My first attempt was the bottom row, and it looked alarming. It turned out that 
 
 | Item | Value |
 |---|---|
-| Search | Project's unmodified config: Ray Tune, TPE, ASHA early stopping, 2 trials at a time, 1-hour budget |
+| Search | Project's unmodified config: Ray Tune, hyperopt configured for TPE, ASHA early stopping, 2 trials at a time, 1-hour budget. **Correction:** hyperopt's default of 20 random startup points used up all 20 trials, so TPE's adaptive stage never ran, and this was effectively random search |
 | Trials | 20. Two hit a Windows file-permission error in Ray's temp folder, yet the final status lists all 20 as terminated, with 20 scores |
 | Runtime | About 32 minutes for the search, 36 minutes including the final retrain. My audit and sync jobs ran during this, so treat it as approximate |
 | Best settings | Learning rate 0.0019, batch size 1024, 2 layers of 64, dropout 0.125, positive class weight 10 |

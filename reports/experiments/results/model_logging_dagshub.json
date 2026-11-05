@@ -1,0 +1,74 @@
+{
+  "tracking_uri": "https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow",
+  "target": "dagshub",
+  "models": [
+    {
+      "key": "served",
+      "run_id": "da8267f55cea492babc67c895f167337",
+      "model_uri": "models:/m-96f6923b9453488e8bae7a470f3dee34",
+      "logged_model_id": "m-96f6923b9453488e8bae7a470f3dee34",
+      "method": "mlflow.sklearn.log_model",
+      "threshold": 0.901464749249132,
+      "version": "20261019-173911",
+      "bundle_artifact": "runs:/da8267f55cea492babc67c895f167337/api_bundle/model.joblib",
+      "reload_check": {
+        "rows_compared": 5000,
+        "max_abs_difference": {
+          "sklearn": 0.0,
+          "pyfunc": 0.0,
+          "api_bundle": 0.0
+        },
+        "predictions_equal": true,
+        "bundle_features_match": true,
+        "bundle_threshold_matches": true,
+        "test_f1_from_downloaded_bundle": 0.7663088356729976
+      },
+      "registry": {
+        "registered_model": "vpn-proxy-classifier",
+        "version": "1",
+        "alias": "production"
+      }
+    },
+    {
+      "key": "candidate",
+      "run_id": "77a20bf6614844a295f409e79732dc70",
+      "model_uri": "models:/m-e2680b06edd948a8ac6259e44f1db960",
+      "logged_model_id": "m-e2680b06edd948a8ac6259e44f1db960",
+      "method": "mlflow.sklearn.log_model",
+      "threshold": 0.827977283051578,
+      "version": "experiment-5887057bd5f4",
+      "bundle_artifact": "runs:/77a20bf6614844a295f409e79732dc70/api_bundle/exp_c_trees_400_no_early_stop.joblib",
+      "reload_check": {
+        "rows_compared": 5000,
+        "max_abs_difference": {
+          "sklearn": 0.0,
+          "pyfunc": 0.0,
+          "api_bundle": 0.0
+        },
+        "predictions_equal": true,
+        "bundle_features_match": true,
+        "bundle_threshold_matches": true,
+        "test_f1_from_downloaded_bundle": 0.7875647668393783
+      },
+      "registry": {
+        "registered_model": "vpn-proxy-classifier",
+        "version": "2",
+        "alias": "candidate"
+      }
+    },
+    {
+      "key": "ludwig",
+      "run_id": "e5007bd27bc04307910b39c2e0d5fba2",
+      "model_uri": "runs:/e5007bd27bc04307910b39c2e0d5fba2/ludwig_model",
+      "method": "plain artifacts (no MLflow flavor)",
+      "threshold": 0.821553647518158,
+      "version": "ludwig_ecd",
+      "reload_check": {
+        "rows_compared": 29652,
+        "max_abs_difference": 0.0,
+        "predictions_equal": true,
+        "loaded_with": "LudwigModel.load"
+      }
+    }
+  ]
+}

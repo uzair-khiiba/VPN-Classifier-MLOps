@@ -17,6 +17,7 @@ LAST_FEATURES = "last_features"
 LAST_SOURCE = "last_source"
 LAST_PREDICTION = "last_prediction"
 LAST_EXPLANATION = "last_explanation"
+LAST_SHAP = "last_shap"
 
 
 @st.cache_resource(show_spinner=False)
@@ -30,6 +31,7 @@ def get_client() -> ApiClient:
 
 def clear_explanation() -> None:
     st.session_state.pop(LAST_EXPLANATION, None)
+    st.session_state.pop(LAST_SHAP, None)
 
 
 def show_api_error(error: Exception) -> None:
