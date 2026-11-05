@@ -1,0 +1,8 @@
+{
+  "best_by_cv": "trees_400_no_early_stop",
+  "best_cv_f1": 0.7884866986480593,
+  "baseline_cv_f1": 0.7693911592994163,
+  "gain": 0.019095539348643054,
+  "required_gain": 0.003,
+  "selected": "trees_400_no_early_stop"
+}

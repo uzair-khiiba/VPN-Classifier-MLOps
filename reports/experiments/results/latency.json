@@ -1,0 +1,14 @@
+{
+  "baseline (committed hgb_slow)": {
+    "trees": 94,
+    "model_size_kb": 286.7,
+    "one_ip_ms": 13.630549947265536,
+    "all_29652_ips_s": 0.2009830999886617
+  },
+  "selected (400 trees, no early stopping)": {
+    "trees": 400,
+    "model_size_kb": 1244.4,
+    "one_ip_ms": 20.386500051245093,
+    "all_29652_ips_s": 0.9285647000651807
+  }
+}

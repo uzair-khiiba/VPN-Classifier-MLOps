@@ -1,0 +1,44 @@
+# Search spaces and budgets for the experiment track (experiments/). Every run uses the same
+# split, the same 5 folds and seed 42. The baseline model is hgb_slow from src/train.py.
+
+threshold_grid: [0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90]
+
+imbalance:
+  # strategy: null | over | under. ratio = positives per negative after resampling.
+  - {name: no_weighting, class_weight: null, strategy: null}
+  - {name: class_weight_balanced, class_weight: balanced, strategy: null}
+  - {name: oversample_1to1, class_weight: null, strategy: over, ratio: 1.0}
+  - {name: oversample_1to10, class_weight: null, strategy: over, ratio: 0.1}
+  - {name: undersample_1to1, class_weight: null, strategy: under, ratio: 1.0}
+  - {name: undersample_1to10, class_weight: null, strategy: under, ratio: 0.1}
+  # Oversampled copies also land in early stopping's internal validation set, so stopping
+  # may be misled. This variant removes that effect by fixing the tree count at the baseline's.
+  - {name: oversample_1to1_no_early_stop, class_weight: null, strategy: over, ratio: 1.0,
+     early_stopping: false, max_iter: 94}
+
+hyperparameters:
+  # Part 1: change one parameter at a time from the baseline (5-fold CV).
+  one_at_a_time:
+    learning_rate: [0.02, 0.1, 0.2]
+    max_leaf_nodes: [15, 31, 127]
+    max_depth: [4, 8]
+    min_samples_leaf: [5, 50, 200]
+    l2_regularization: [0.0, 10.0]
+    # Early stopping decides the tree count, so max_iter only matters with stopping turned off.
+    fixed_trees_no_early_stop: [100, 200, 400]
+  # Part 2: random search over combinations (3-fold to screen), then the best at 5-fold.
+  random_search:
+    n_configs: 20
+    n_splits: 3
+    n_finalists: 3
+    seed: 42
+    space:
+      learning_rate: {loguniform: [0.01, 0.2]}
+      max_leaf_nodes: [15, 31, 63, 127]
+      max_depth: [null, 6, 10]
+      min_samples_leaf: [5, 20, 50, 100, 200]
+      l2_regularization: [0.0, 0.1, 1.0, 10.0]
+  max_iter_with_early_stopping: 2000
+  # A challenger must beat the baseline's CV F1 by more than this to replace it:
+  # smaller gains are within fold-to-fold noise. Set before seeing any search result.
+  min_cv_f1_gain: 0.003

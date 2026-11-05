@@ -1,0 +1,212 @@
+[
+  {
+    "run_name": "exp_e_logreg",
+    "name": "logreg",
+    "experiment": "exp_e",
+    "change": "algorithm: logreg",
+    "spec": {
+      "kind": "candidate",
+      "candidate": "logreg"
+    },
+    "params": {
+      "candidate": "logreg"
+    },
+    "metrics": {
+      "threshold": 0.9393466705246708,
+      "cv_f1": 0.5936352509179927,
+      "cv_precision": 0.5617760617760618,
+      "cv_recall": 0.629325259515571,
+      "cv_pr_auc": 0.5291715763354955,
+      "cv_roc_auc": 0.9723906368945101,
+      "cv_tn": 115160,
+      "cv_fp": 1135,
+      "cv_fn": 857,
+      "cv_tp": 1455,
+      "cv_f1_fold_std": 0.011055926957483614,
+      "cv_f1_nested": 0.5919482095893183,
+      "mean_fit_seconds": 1.0390380600234495,
+      "mean_trees": null,
+      "test_f1": 0.5968412302576891,
+      "test_precision": 0.5744,
+      "test_recall": 0.6211072664359861,
+      "test_pr_auc": 0.5505429168676366,
+      "test_roc_auc": 0.9726488404603169,
+      "test_accuracy": 0.9836435990826926,
+      "test_tn": 28808,
+      "test_fp": 266,
+      "test_fn": 219,
+      "test_tp": 359,
+      "refit_seconds": 1.4413071000017226,
+      "model_size_kb": 2.2
+    },
+    "test_proba_key": "c6f7b00bdc1d"
+  },
+  {
+    "run_name": "exp_e_rf",
+    "name": "rf",
+    "experiment": "exp_e",
+    "change": "algorithm: rf",
+    "spec": {
+      "kind": "candidate",
+      "candidate": "rf"
+    },
+    "params": {
+      "candidate": "rf"
+    },
+    "metrics": {
+      "threshold": 0.3401452191131254,
+      "cv_f1": 0.7606837606837606,
+      "cv_precision": 0.718293620292083,
+      "cv_recall": 0.8083910034602076,
+      "cv_pr_auc": 0.8105001220088311,
+      "cv_roc_auc": 0.9842416415508167,
+      "cv_tn": 115562,
+      "cv_fp": 733,
+      "cv_fn": 443,
+      "cv_tp": 1869,
+      "cv_f1_fold_std": 0.015068568251571561,
+      "cv_f1_nested": 0.7566093159882501,
+      "mean_fit_seconds": 16.270321699976922,
+      "mean_trees": null,
+      "test_f1": 0.7502034174125305,
+      "test_precision": 0.7081413210445469,
+      "test_recall": 0.7975778546712803,
+      "test_pr_auc": 0.8039694729631207,
+      "test_roc_auc": 0.986897382481595,
+      "test_accuracy": 0.9896465668420342,
+      "test_tn": 28884,
+      "test_fp": 190,
+      "test_fn": 117,
+      "test_tp": 461,
+      "refit_seconds": 23.256764300051145,
+      "model_size_kb": 10354.7
+    },
+    "test_proba_key": "ab51170d370e"
+  },
+  {
+    "run_name": "exp_e_rf_shallow",
+    "name": "rf_shallow",
+    "experiment": "exp_e",
+    "change": "algorithm: rf_shallow",
+    "spec": {
+      "kind": "candidate",
+      "candidate": "rf_shallow"
+    },
+    "params": {
+      "candidate": "rf_shallow"
+    },
+    "metrics": {
+      "threshold": 0.826781047689475,
+      "cv_f1": 0.729061884977039,
+      "cv_precision": 0.7372843874391862,
+      "cv_recall": 0.7210207612456747,
+      "cv_pr_auc": 0.7219030635155337,
+      "cv_roc_auc": 0.9861177114756039,
+      "cv_tn": 115701,
+      "cv_fp": 594,
+      "cv_fn": 645,
+      "cv_tp": 1667,
+      "cv_f1_fold_std": 0.02071794682939752,
+      "cv_f1_nested": 0.7262349066959385,
+      "mean_fit_seconds": 29.60448057996109,
+      "mean_trees": null,
+      "test_f1": 0.708512467755804,
+      "test_precision": 0.7042735042735043,
+      "test_recall": 0.71280276816609,
+      "test_pr_auc": 0.7291096543272653,
+      "test_roc_auc": 0.9869121699479172,
+      "test_accuracy": 0.9885673816268717,
+      "test_tn": 28901,
+      "test_fp": 173,
+      "test_fn": 166,
+      "test_tp": 412,
+      "refit_seconds": 36.10702910006512,
+      "model_size_kb": 6092.3
+    },
+    "test_proba_key": "b3f12ca26ace"
+  },
+  {
+    "run_name": "exp_e_hgb",
+    "name": "hgb",
+    "experiment": "exp_e",
+    "change": "algorithm: hgb",
+    "spec": {
+      "kind": "candidate",
+      "candidate": "hgb"
+    },
+    "params": {
+      "candidate": "hgb"
+    },
+    "metrics": {
+      "threshold": 0.9147771432601294,
+      "cv_f1": 0.7661172543292302,
+      "cv_precision": 0.7400241837968561,
+      "cv_recall": 0.7941176470588235,
+      "cv_pr_auc": 0.7721763576457034,
+      "cv_roc_auc": 0.9867351920624244,
+      "cv_tn": 115650,
+      "cv_fp": 645,
+      "cv_fn": 476,
+      "cv_tp": 1836,
+      "cv_f1_fold_std": 0.02113597250612575,
+      "cv_f1_nested": 0.762708289390424,
+      "mean_fit_seconds": 20.932753560040148,
+      "mean_trees": 74.0,
+      "test_f1": 0.760797342192691,
+      "test_precision": 0.731629392971246,
+      "test_recall": 0.7923875432525952,
+      "test_pr_auc": 0.7805461390943648,
+      "test_roc_auc": 0.9885408739850798,
+      "test_accuracy": 0.990287333063537,
+      "test_tn": 28906,
+      "test_fp": 168,
+      "test_fn": 120,
+      "test_tp": 458,
+      "refit_seconds": 20.128808600013144,
+      "model_size_kb": 130.3
+    },
+    "test_proba_key": "7c2c3433d889"
+  },
+  {
+    "run_name": "exp_e_hgb_slow",
+    "name": "hgb_slow",
+    "experiment": "exp_e",
+    "change": "algorithm: hgb_slow",
+    "spec": {
+      "kind": "candidate",
+      "candidate": "hgb_slow"
+    },
+    "params": {
+      "candidate": "hgb_slow"
+    },
+    "metrics": {
+      "threshold": 0.901464749249132,
+      "cv_f1": 0.7693911592994163,
+      "cv_precision": 0.7427536231884058,
+      "cv_recall": 0.7980103806228374,
+      "cv_pr_auc": 0.7770591590423963,
+      "cv_roc_auc": 0.9852808791060677,
+      "cv_tn": 115656,
+      "cv_fp": 639,
+      "cv_fn": 467,
+      "cv_tp": 1845,
+      "cv_f1_fold_std": 0.020906243192886646,
+      "cv_f1_nested": 0.7654164017800381,
+      "mean_fit_seconds": 73.63628786001354,
+      "mean_trees": 96.6,
+      "test_f1": 0.7663088356729976,
+      "test_precision": 0.7330173775671406,
+      "test_recall": 0.8027681660899654,
+      "test_pr_auc": 0.7972486867378782,
+      "test_roc_auc": 0.987725093800737,
+      "test_accuracy": 0.9904559557534062,
+      "test_tn": 28905,
+      "test_fp": 169,
+      "test_fn": 114,
+      "test_tp": 464,
+      "refit_seconds": 29.07756920007523,
+      "model_size_kb": 286.7
+    },
+    "test_proba_key": "a6fb713667c2"
+  }
+]

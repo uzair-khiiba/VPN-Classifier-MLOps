@@ -17,7 +17,8 @@ flowchart LR
     C --> L["src/automl_ludwig.py<br/>Ludwig AutoML search<br/>(logged to MLflow)"]
     E --> X["src/explain.py<br/>permutation importance<br/>(global explainability)"]
     D --> E["models/model.joblib<br/>best model + F1 threshold"]
-    E --> F["src/app.py (FastAPI)<br/>/predict · /explain · /health · /docs"]
+    E --> F["src/app.py (FastAPI)<br/>/predict · /explain · /health · /model-info · /docs"]
+    U["ui/streamlit_app.py (Streamlit)<br/>dashboard"] -->|HTTP| F
 ```
 
 Plain-text version:
@@ -57,6 +58,29 @@ make data SAMPLE=1 && make train SAMPLE=1
 With `SAMPLE=1`, the outputs go to `data/processed-sample/` and `models/sample/`, so the committed model trained on the real data is never overwritten. MLflow logs these runs to a separate experiment, `vpn-proxy-classification-sample`.
 
 Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.train` and `uvicorn src.app:app`.
+
+## Dashboard
+
+A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you enter an IP's features, get a prediction, see why the model made it, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
+
+On Windows, in Command Prompt from the project folder:
+
+```bat
+:: First time only
+.venv\Scripts\python -m pip install -r requirements-ui.txt
+
+:: Terminal 1: the API
+.venv\Scripts\python -m uvicorn src.app:app --host 127.0.0.1 --port 8000
+
+:: Terminal 2: the dashboard, at http://localhost:8501
+.venv\Scripts\python -m streamlit run ui/streamlit_app.py
+```
+
+On Linux or macOS, `make setup-ui`, then `make serve` and `make ui` in two terminals.
+
+Set `API_BASE_URL` if the API runs elsewhere. The default is `http://127.0.0.1:8000`, and `.env.example` shows the file option.
+
+**The model needs 28 aggregated features, and this project has no IP lookup,** so an IP address alone can't be scored. The form asks for the features, and offers two real held-out test records as clearly labelled demos. The API serves `hgb_slow`. The experimental 400-tree model appears only as a labelled comparison.
 
 ## Dataset
 
@@ -132,18 +156,19 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 | Endpoint | Description |
 |---|---|
 | `GET /health` | Status, and whether the model is loaded, with its name and version |
-| `POST /predict` | The 28 features of one IP → `is_vpn_proxy`, `probability`, the threshold and the model version |
+| `GET /model-info` | The served model's identity and saved evaluation metrics |
+| `POST /predict` | The 28 features of one IP → `prediction`, `label`, `is_vpn_proxy`, `probability`, the threshold and the model version |
 | `POST /explain?top_k=8` | The prediction, plus each feature's effect: how much the probability changes when that feature is replaced by its training median |
 | `GET /docs` | Auto-generated Swagger UI, with the two example IPs below preloaded |
 
-Pydantic validates every field: counts must be ≥ 0 (or ≥ 1 where an IP always has one), shares and flags must be in [0, 1], all fields are required, and unknown fields are rejected. If no model is loaded, `/health` reports `degraded` and `/predict` returns 503.
+Pydantic validates every field: counts must be ≥ 0 (or ≥ 1 where an IP always has one), shares and flags must be in [0, 1], all fields are required, and unknown fields are rejected. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
-# {"is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
+# {"prediction":1,"label":"VPN/Proxy","is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
 
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d @examples/regular_ip.json
-# {"is_vpn_proxy":false,"probability":0.0055,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
+# {"prediction":0,"label":"Not VPN/Proxy","is_vpn_proxy":false,"probability":0.0055,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
 
 curl -X POST "http://127.0.0.1:8000/explain?top_k=3" -H "Content-Type: application/json" -d @examples/vpn_ip.json
 # contributions: has_shodan +0.394, headers_hash_shared +0.058, n_tcp_ports +0.054
@@ -190,7 +215,7 @@ Ludwig has its own environment because of its size; the API doesn't need it. 0.1
 ## Tests
 
 ```bash
-make test         # pytest: 43 tests, ~10 s, no dataset needed
+make test         # pytest: 90 tests, about 90 s, no dataset needed
 make lint         # ruff
 ```
 
@@ -199,6 +224,9 @@ make lint         # ruff
 | `tests/test_prepare_data.py` | Validation (missing columns, null IDs, bad or conflicting labels, time-zone-aware timestamps), hand-checked feature values, Shodan parsing and fingerprint sharing, split leakage and stratification, end-to-end `prepare()` |
 | `tests/test_model_io.py` | Model bundle save/load round trip; missing, corrupt and invalid files; bad thresholds; the committed `models/model.joblib` loads and classifies both example IPs correctly |
 | `tests/test_app.py` | `/health` with and without a model, `/predict` output, 422 on invalid or missing or extra fields, `/explain` ordering, `/docs`, docs examples are valid requests |
+| `tests/test_api_extended.py` | Labels, `/model-info`, no file paths in errors, infinite values rejected, one model load, API documentation |
+| `tests/test_ui_client.py` | The dashboard's HTTP client against the real API, backend down, invalid responses, and that `ui/` never imports the model |
+| `tests/test_ui_app.py` | Every dashboard page run headlessly, including offline and no-model behaviour |
 | `tests/test_explain.py` | Permutation importance ranks the one informative feature first; the F1 scorer respects the threshold; the chart is written |
 | `tests/test_automl_config.py` | Ludwig config matches the pipeline's features; search parameters point at real config sections (no Ludwig install needed) |
 
@@ -206,6 +234,7 @@ make lint         # ruff
 
 ```
 src/            config, features, prepare_data, train, model_io, app (FastAPI), explain, automl_ludwig
+ui/             Streamlit dashboard: streamlit_app, api_client (HTTP), features, reports, views/
 tests/          pytest suite and synthetic-data fixtures
 configs/        Ludwig AutoML config
 data/sample/    small synthetic dataset (raw data goes in data/raw/, not committed)
@@ -216,7 +245,7 @@ examples/       example request bodies
 ## Credits
 
 - Feature ideas, including fingerprint sharing, ASN crowding and attack timing, are adapted from the public 2nd-place solution notebook of the CrowdSec Kaggle competition ("crowdsec-vpn-classification-2nd-place"). Our code is a reimplementation, not a copy.
-- Libraries: scikit-learn, DuckDB, pandas, PyArrow, MLflow, FastAPI, Pydantic, Uvicorn, pytest, Ruff, and Ludwig, Ray and PyTorch for the optional AutoML.
+- Libraries: scikit-learn, DuckDB, pandas, PyArrow, MLflow, FastAPI, Pydantic, Uvicorn, pytest, Ruff, Streamlit and Altair for the dashboard, and Ludwig, Ray and PyTorch for the optional AutoML.
 - See `AI_USAGE.md` for how AI assistants were used.
 
 ## License

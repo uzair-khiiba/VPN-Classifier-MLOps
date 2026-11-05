@@ -1,0 +1,150 @@
+{
+  "signals_file": "C:\\Users\\DANISH LAPTOP\\Desktop\\mlops\\VPN-Classifier-MLOps\\data\\raw\\train.parq",
+  "size_bytes": 707379520,
+  "columns": {
+    "attack_time": "TIMESTAMP WITH TIME ZONE",
+    "watcher_country": "VARCHAR",
+    "watcher_as_num": "FLOAT",
+    "watcher_as_name": "VARCHAR",
+    "attacker_country": "VARCHAR",
+    "attacker_as_num": "FLOAT",
+    "attacker_as_name": "VARCHAR",
+    "attack_type": "VARCHAR",
+    "watcher_uuid_enum": "INTEGER",
+    "attacker_ip_enum": "INTEGER",
+    "label": "TINYINT"
+  },
+  "missing_required": [],
+  "n_rows": 61629685,
+  "null_counts": {
+    "attack_time": 0,
+    "watcher_country": 349386,
+    "watcher_as_num": 0,
+    "watcher_as_name": 349405,
+    "attacker_country": 73661,
+    "attacker_as_num": 462,
+    "attacker_as_name": 49512,
+    "attack_type": 0,
+    "watcher_uuid_enum": 0,
+    "attacker_ip_enum": 0,
+    "label": 0
+  },
+  "n_ips": 148259,
+  "n_positive_ips": 2890,
+  "positive_rate_ips": 0.019492914426780163,
+  "ips_with_conflicting_labels": 0,
+  "signals_per_ip": {
+    "count": 148259.0,
+    "mean": 415.6893342056806,
+    "std": 6030.489997623279,
+    "min": 1.0,
+    "25%": 20.0,
+    "50%": 37.0,
+    "75%": 91.0,
+    "max": 1466169.0
+  },
+  "positive_rate_signals": 0.01679770065350813,
+  "time_range": [
+    "2023-07-30 00:00:20+00",
+    "2023-08-29 12:56:09+00"
+  ],
+  "n_attack_types": 15,
+  "attack_types_top": [
+    {
+      "attack_type": "http:spam",
+      "n_signals": 17301152,
+      "n_ips": 124833
+    },
+    {
+      "attack_type": "http:scan",
+      "n_signals": 16650038,
+      "n_ips": 122242
+    },
+    {
+      "attack_type": "http:exploit",
+      "n_signals": 15307840,
+      "n_ips": 93191
+    },
+    {
+      "attack_type": "http:bruteforce",
+      "n_signals": 5093495,
+      "n_ips": 71988
+    },
+    {
+      "attack_type": "ssh:bruteforce",
+      "n_signals": 5272603,
+      "n_ips": 5740
+    },
+    {
+      "attack_type": "http:crawl",
+      "n_signals": 94977,
+      "n_ips": 5176
+    },
+    {
+      "attack_type": "pop3/imap:bruteforce",
+      "n_signals": 440315,
+      "n_ips": 3732
+    },
+    {
+      "attack_type": "unknown:unknown",
+      "n_signals": 324096,
+      "n_ips": 3442
+    },
+    {
+      "attack_type": "tcp:scan",
+      "n_signals": 334948,
+      "n_ips": 2295
+    },
+    {
+      "attack_type": "windows:bruteforce",
+      "n_signals": 568503,
+      "n_ips": 889
+    },
+    {
+      "attack_type": "smb:bruteforce",
+      "n_signals": 12437,
+      "n_ips": 410
+    },
+    {
+      "attack_type": "sip:bruteforce",
+      "n_signals": 224956,
+      "n_ips": 364
+    },
+    {
+      "attack_type": "telnet:bruteforce",
+      "n_signals": 2395,
+      "n_ips": 250
+    },
+    {
+      "attack_type": "database:bruteforce",
+      "n_signals": 453,
+      "n_ips": 148
+    },
+    {
+      "attack_type": "ftp:bruteforce",
+      "n_signals": 1477,
+      "n_ips": 66
+    }
+  ],
+  "expected_attack_types_missing": [],
+  "ips_with_multiple_asns": 70,
+  "shodan": {
+    "columns": {
+      "shodan_info": "str",
+      "attacker_ip_enum": "int64"
+    },
+    "n_rows": 197679,
+    "n_unique_ips": 197679,
+    "null_counts": {
+      "shodan_info": 0,
+      "attacker_ip_enum": 0
+    },
+    "n_unparseable_or_empty": 150083,
+    "ips_in_signals": 148259,
+    "ips_not_in_signals": 49420,
+    "signal_ips_with_shodan_row": 148259,
+    "positive_ips_with_shodan_row": 2890,
+    "negative_ips_with_shodan_row": 145369
+  },
+  "elapsed_s": 48.2
+}

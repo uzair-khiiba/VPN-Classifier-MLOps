@@ -1,0 +1,202 @@
+{
+  "passed": 48,
+  "failed": [],
+  "backup": {
+    "path": "reports/experiments/artifacts/backups/results_20261102_013349.zip",
+    "n_files": 141
+  },
+  "checks": [
+    {
+      "passed": true,
+      "check": "the split is unchanged (7a8a6674be67b514)"
+    },
+    {
+      "passed": true,
+      "check": "newest of 69 OOF files (00:01:44) predates the lock (00:02:45)"
+    },
+    {
+      "passed": true,
+      "check": "the lock (00:02:45) predates the first of 53 test predictions (00:03:10)"
+    },
+    {
+      "passed": true,
+      "check": "the test stage log shows exactly one run"
+    },
+    {
+      "passed": true,
+      "check": "selections are identical when every test metric is removed"
+    },
+    {
+      "passed": true,
+      "check": "selections are identical when every test metric is replaced with random numbers"
+    },
+    {
+      "passed": true,
+      "check": "the selected run (exp_c_trees_400_no_early_stop, test F1 0.7876) is not the best on test (exp_c2_oversample_1to1_trees_600, 0.7935)"
+    },
+    {
+      "passed": true,
+      "check": "73 thresholds and CV F1 scores recomputed from training labels and OOF files match exactly "
+    },
+    {
+      "passed": true,
+      "check": "the 5 runs sharing one OOF file have identical model settings (exp_a, exp_b, exp_c, exp_d, exp_e)"
+    },
+    {
+      "passed": true,
+      "check": "exp_a_threshold.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_b_imbalance.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_c_hyperparameters.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_c2_followup.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_d_features.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_e_models.py never holds the test table in a variable"
+    },
+    {
+      "passed": true,
+      "check": "exp_a: 10 of 10 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_a: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_a: all 10 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_a: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_b: 7 of 7 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_b: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_b: all 7 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_b: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_c: 40 of 40 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_c: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_c: all 20 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_c: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_c2: 8 of 8 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_c2: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_c2: all 8 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_c2: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_d: 12 of 12 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_d: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_d: all 12 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_d: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_e: 5 of 5 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_e: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_e: all 5 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_e: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_f: 1 of 1 runs present"
+    },
+    {
+      "passed": true,
+      "check": "exp_f: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "exp_f: all 1 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "exp_f: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "baseline: 5 of 5 runs present"
+    },
+    {
+      "passed": true,
+      "check": "baseline: run names are unique"
+    },
+    {
+      "passed": true,
+      "check": "baseline: all 5 scored runs have test metrics "
+    },
+    {
+      "passed": true,
+      "check": "baseline: no NaN or infinite metrics "
+    },
+    {
+      "passed": true,
+      "check": "backup verified: 141 files in reports/experiments/artifacts/backups/results_20261102_013349.zip (58044 KB)"
+    }
+  ]
+}

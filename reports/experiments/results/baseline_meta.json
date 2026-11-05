@@ -1,0 +1,15 @@
+{
+  "split_fingerprint": "7a8a6674be67b514",
+  "environment": {
+    "python": "3.12.2",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "random_state": 42,
+    "scikit-learn": "1.9.1",
+    "numpy": "2.4.6",
+    "pandas": "3.0.6",
+    "duckdb": "1.5.6",
+    "mlflow": "3.17.1"
+  },
+  "n_features": 28,
+  "models_dir": "C:\\Users\\DANISH LAPTOP\\Desktop\\mlops\\VPN-Classifier-MLOps\\reports\\experiments\\artifacts\\baseline"
+}
