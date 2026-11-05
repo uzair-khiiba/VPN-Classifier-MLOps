@@ -3,14 +3,13 @@ from fastapi.testclient import TestClient
 
 from src import app as app_module
 from src.features import FEATURES
+from tests.conftest import consistent_features
 
 client = TestClient(app_module.app)
 
 
 def valid_payload() -> dict:
-    payload = {f: 1.0 for f in FEATURES}
-    payload.update(n_signals=12, max_signals_per_hour=3, asn_unique_ips=40, share_http_scan=0.5)
-    return payload
+    return consistent_features()
 
 
 @pytest.fixture
@@ -77,3 +76,30 @@ def test_docs_available():
 def test_docs_examples_are_valid_requests(loaded):
     for example in app_module.EXAMPLES:
         assert client.post("/predict", json=example).status_code == 200
+
+
+@pytest.mark.parametrize("change", [
+    {"n_signals": 12.5},                                    # a count must be whole
+    {"has_shodan": 0.5},                                    # a flag must be 0 or 1
+    {"has_shodan": 0},                                      # ...and match the ports
+    {"n_tcp_ports": 0, "jarm_shared": 0},                   # has_shodan = 1 without ports
+    {"no_print_with_ports": 1, "has_shodan": 0, "n_tcp_ports": 0},
+    {"max_signals_per_hour": 13},                           # busiest hour above the total
+    {"n_active_days": 13, "signals_per_day": 12 / 13},      # more active days than signals
+    {"share_http_spam": 0.5},                               # attack mix adds up to 1.25
+    {"signals_per_day": 9},                                 # not n_signals / n_active_days
+    {"mean_gap_s": 2 * 3600 + 60},                          # a gap longer than the active span
+])
+def test_predict_rejects_impossible_combinations(loaded, change):
+    response = client.post("/predict", json={**valid_payload(), **change})
+    assert response.status_code == 422, change
+
+
+def test_every_real_ip_passes_the_input_rules():
+    """The rules must never reject what the training pipeline produces: check every committed test IP."""
+    import pandas as pd
+
+    from src.config import IP_LOOKUP_PATH
+
+    for row in pd.read_parquet(IP_LOOKUP_PATH)[FEATURES].to_dict("records"):
+        app_module.IPFeatures(**row)

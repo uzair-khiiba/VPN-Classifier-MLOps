@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from src import app as app_module
 from src.features import FEATURES
+from tests.conftest import consistent_features
 
 client = TestClient(app_module.app)
 
@@ -26,7 +27,7 @@ def no_model(tmp_path):
 
 
 def payload() -> dict:
-    return {**{f: 1.0 for f in FEATURES}, "n_signals": 12, "asn_unique_ips": 40, "share_http_scan": 0.5}
+    return consistent_features()
 
 
 def test_predict_returns_class_and_readable_label(loaded):
@@ -42,7 +43,8 @@ def test_original_response_fields_are_kept(loaded):
 
 def test_health_reports_model_status(loaded):
     assert client.get("/health").json() == {"status": "ok", "model_loaded": True, "model_status": "loaded",
-                                            "model": "test-logreg", "version": "test"}
+                                            "model": "test-logreg", "version": "test",
+                                            "ip_lookup_loaded": False, "feature_reference_loaded": False}
 
 
 def test_missing_model_never_exposes_the_file_path(no_model, caplog):
@@ -109,3 +111,41 @@ def test_openapi_documents_fields_and_errors():
     for path in ("/predict", "/explain"):
         assert {"200", "422", "503"} <= spec["paths"][path]["post"]["responses"].keys()
     assert "503" in spec["paths"]["/model-info"]["get"]["responses"]
+
+
+@pytest.mark.parametrize("change", [
+    {"threshold": "not a number"},
+    {"metadata": {}},
+    {"features": ["n_signals"]},             # fewer features than the API sends
+    {"reference": {}},                       # no medians for /explain
+])
+def test_bad_bundles_put_the_api_in_degraded_mode(model_path, tmp_path, change):
+    import joblib
+
+    path = tmp_path / "bad.joblib"
+    joblib.dump({**joblib.load(model_path), **change}, path)
+    app_module.load_model(path)
+    try:
+        assert client.get("/health").json()["status"] == "degraded"
+        assert client.post("/predict", json=payload()).status_code == 503
+    finally:
+        app_module.STATE.update(bundle=None, error=None)
+
+
+def test_lookup_with_duplicate_ids_is_not_loaded(tmp_path):
+    import pandas as pd
+
+    from src.config import FEATURE_REFERENCE_PATH, IP_LOOKUP_PATH
+
+    lookup = pd.read_parquet(IP_LOOKUP_PATH).head(3)
+    pd.concat([lookup, lookup.head(1)]).to_parquet(tmp_path / "dup.parquet", index=False)
+    app_module.load_ip_data(tmp_path / "dup.parquet", FEATURE_REFERENCE_PATH)
+    try:
+        assert app_module.STATE["lookup"] is None and app_module.STATE["reference"] is not None
+    finally:
+        app_module.STATE.update(lookup=None, reference=None)
+
+
+def test_docs_describe_the_three_ways_to_score_an_ip():
+    description = client.get("/openapi.json").json()["info"]["description"]
+    assert "/predict/ip/" in description and "/predict/signals" in description and "does not look up" not in description

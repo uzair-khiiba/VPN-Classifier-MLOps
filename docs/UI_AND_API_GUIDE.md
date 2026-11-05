@@ -39,7 +39,17 @@ The experimental 400-tree model scored higher in `reports/experiments/`, but **i
 
 ## What the model needs as input
 
-**An IP address alone isn't enough, and this project has no IP lookup.** The model takes 28 numbers that summarise an IP's behaviour:
+**You don't have to type the 28 features.** The IP Detection page has three tabs:
+
+| Tab | You enter | The API |
+|---|---|---|
+| Look up an IP ID | The ID of an IP from the held-out test set, e.g. `47584` | Fetches its stored features (`GET /predict/ip/{ip_id}`) and shows its true class |
+| From attack events | A new IP's signals (time, attack type, attacker ASN, watcher ID, watcher ASN, watcher country), typed or uploaded as CSV, plus its Shodan ports | Computes the 28 features as in training (`POST /predict/signals`) |
+| Enter all 28 features | Every feature yourself | Scores them as given (`POST /predict`) |
+
+The dataset anonymises IPs, so an IP is identified by its ID (`attacker_ip_enum`), not an address like 1.2.3.4. Whichever tab you use, the Explainability page explains the features that were actually scored.
+
+The model itself always takes the same 28 numbers that summarise an IP's behaviour:
 
 | Group | Features |
 |---|---|
@@ -51,7 +61,7 @@ The experimental 400-tree model scored higher in `reports/experiments/`, but **i
 
 These come from aggregating CrowdSec signals and Shodan data (`src/features.py`). The form builds itself from the API's `/openapi.json`, so it always matches what the API expects. Any preprocessing is inside the saved model, so the API needs no extra step.
 
-**Serving caveat:** `headers_hash_shared`, `jarm_shared`, `ja3s_shared` and `asn_unique_ips` are counts across a population of IPs. They must be computed exactly as in training, or scores become unreliable. The experiments found that being off by one cost about 0.06 F1.
+**Serving caveat:** `headers_hash_shared`, `jarm_shared`, `ja3s_shared` and `asn_unique_ips` are counts across a population of IPs. They must be computed exactly as in training, or scores become unreliable. The experiments found that being off by one cost about 0.06 F1. This is why `POST /predict/signals` looks them up in `models/feature_reference.json`, built from the full data, and counts the new IP itself exactly as training did.
 
 ## Starting both services
 
@@ -107,7 +117,8 @@ The API reports its state without running the model. The API Status page also me
 **Response with a model loaded:**
 
 ```json
-{"status": "ok", "model_loaded": true, "model_status": "loaded", "model": "hgb_slow", "version": "20261019-173911"}
+{"status": "ok", "model_loaded": true, "model_status": "loaded", "model": "hgb_slow", "version": "20261019-173911",
+ "ip_lookup_loaded": true, "n_lookup_ips": 29652, "feature_reference_loaded": true}
 ```
 
 **Response with no valid model.** The API keeps running, and the real reason goes only to the server log, so file paths stay private:
@@ -143,11 +154,50 @@ The `probability` field is the model's score. Class weights used in training inf
 {"detail": [{"type": "greater_than_equal", "loc": ["body", "n_signals"], "msg": "Input should be greater than or equal to 1"}]}
 ```
 
+Combinations the feature pipeline can never produce are also rejected with 422. Every IP in the data passes these checks:
+
+- Counts must be whole numbers, and `has_shodan` and `no_print_with_ports` must be 0 or 1.
+- `has_shodan` is 1 exactly when there are open ports, and `no_print_with_ports` can be 1 only with ports.
+- `max_signals_per_hour`, `n_attack_types`, `n_watchers` and `n_active_days` can't exceed `n_signals`.
+- The `share_*` fields can't add up to more than 1.
+- `signals_per_day` must equal `n_signals / n_active_days`.
+- No gap between signals can be longer than `active_hours`.
+
+The dashboard's form applies the same rules before it sends anything.
+
 | Status | Meaning |
 |---|---|
 | 200 | Success |
-| 422 | A field is missing, unknown or out of range |
+| 422 | A field is missing, unknown, out of range, or inconsistent with the others |
 | 503 | The API is running, but no model is loaded |
+
+## How `/predict/ip/{ip_id}` works
+
+**Request:** `GET /predict/ip/47584`. The ID must belong to the held-out test set (`models/ip_lookup.parquet`).
+
+**Response:** the `/predict` fields, plus `ip_id`, `source` (`"held-out test set"`), the `features` used, `actual_label`, `actual_label_name` and `correct`. An ID that isn't in the test set returns 404 with a pointer to the other two endpoints. `GET /ips/{ip_id}` returns the same features and true class without scoring.
+
+## How `/predict/signals` works
+
+**Request:** `POST /predict/signals`. A full example is in `examples/signals_request.json`. It holds the real signals of IP 74191, a VPN/proxy from the training data. Because that IP is already counted in the reference, its computed `asn_unique_ips` and `headers_hash_shared` come out one higher than its stored values (513 vs 512, 178 vs 177). For an IP that isn't in the data, the features match training exactly.
+
+```json
+{
+  "signals": [
+    {"attack_time": "2023-08-04T02:12:21Z", "attack_type": "http:exploit", "attacker_as_num": 55286, "watcher_uuid_enum": 10462, "watcher_as_num": 0, "watcher_country": null},
+    ...
+  ],
+  "shodan_ports": {"80/tcp": {"jarm": null, "ja3s": null, "headers_hash": 706837694}, ...}
+}
+```
+
+- `attack_time`, `attack_type` and `watcher_uuid_enum` are required. A time without a time zone is read as UTC.
+- Attack types and fingerprints ignore case and surrounding spaces (`HTTP:Scan ` counts as `http:scan`). A header hash sent as text, such as `"0"`, is read as the integer.
+- The watcher ID can be any label: only the number of distinct watchers is used.
+- `shodan_ports` is optional. Leave it empty if Shodan has no record of the IP.
+- At most 100,000 signals. For a larger IP, compute the features offline and use `/predict`.
+
+**Response:** the `/predict` fields, plus `source` (`"computed from signals"`) and the 28 computed `features`. `POST /features/from-signals` returns only the features, so you can inspect or adjust them before calling `/predict`.
 
 ## How `/explain` works
 

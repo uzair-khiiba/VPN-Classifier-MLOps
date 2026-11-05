@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from src import app as app_module
 from src.features import FEATURES
+from tests.conftest import consistent_features
 from ui.api_client import (
     ApiClient,
     ApiInvalidInputError,
@@ -39,7 +40,7 @@ def real_api(model_path):
 
 
 def payload() -> dict:
-    return {**{f: 1.0 for f in FEATURES}, "n_signals": 12, "asn_unique_ips": 40}
+    return consistent_features()
 
 
 def test_predict_through_real_http_stack(real_api):
@@ -178,3 +179,66 @@ def test_the_ui_never_imports_the_model_or_the_backend():
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module]
             assert not {name.split(".")[0] for name in names} & forbidden, f"{path} imports {names}"
+
+
+def test_signals_payload_skips_empty_rows_and_reports_missing_values():
+    import pandas as pd
+
+    from ui.views.detect import PORT_COLUMNS, SIGNAL_COLUMNS, signals_payload
+
+    signals = pd.DataFrame([
+        {"attack_time": "2023-09-01 10:00", "attack_type": "http:scan", "attacker_as_num": 16509.0,
+         "watcher_uuid_enum": "7", "watcher_as_num": float("nan"), "watcher_country": "FR"},
+        dict.fromkeys(SIGNAL_COLUMNS),                                    # an empty editor row
+        {"attack_time": "2023-09-01 11:00", "attack_type": None, "watcher_uuid_enum": "8"},
+    ], columns=SIGNAL_COLUMNS)
+    ports = pd.DataFrame([{"port": "443/TCP", "jarm": "", "ja3s": "abc", "headers_hash": "-12"},
+                          dict.fromkeys(PORT_COLUMNS)], columns=PORT_COLUMNS)
+    rows, shodan_ports, problems = signals_payload(signals, ports)
+    assert rows == [{"attack_time": "2023-09-01 10:00", "attack_type": "http:scan", "watcher_uuid_enum": "7",
+                     "attacker_as_num": 16509, "watcher_country": "FR"}]
+    assert shodan_ports == {"443/tcp": {"jarm": None, "ja3s": "abc", "headers_hash": "-12"}}
+    assert problems == ["Signal row 3 is missing: attack_type."]
+
+
+def test_ip_not_in_the_test_set_raises_not_found(real_api):
+    from src.config import FEATURE_REFERENCE_PATH, IP_LOOKUP_PATH
+    from ui.api_client import ApiNotFoundError
+
+    app_module.load_ip_data(IP_LOOKUP_PATH, FEATURE_REFERENCE_PATH)
+    try:
+        with pytest.raises(ApiNotFoundError, match="not in the held-out test set"):
+            real_api.predict_ip(199_999)
+        assert real_api.predict_ip(47584).data["actual_label"] == 1
+    finally:
+        app_module.STATE.update(lookup=None, reference=None)
+
+
+def test_csv_asns_accept_the_as_prefix_and_report_unreadable_values():
+    import pandas as pd
+
+    from ui.views.detect import normalise_signals
+
+    frame = pd.DataFrame({"attack_time": ["2023-09-01"] * 4, "attack_type": ["http:scan"] * 4,
+                          "watcher_uuid_enum": [1, 2, 3, 4],
+                          "attacker_as_num": ["AS16509", "as 3320", "16509", "Amazon"],
+                          "watcher_as_num": [None, "7", None, None]})
+    normalised, unreadable = normalise_signals(frame)
+    assert normalised["attacker_as_num"].tolist()[:3] == [16509, 3320, 16509] and unreadable == 1
+    assert normalised["watcher_as_num"].iloc[1] == 7
+
+
+def test_form_blocks_fractional_counts():
+    specs = [FeatureSpec("n_signals", None, 1, None), FeatureSpec("share_tcp_scan", None, 0, 1)]
+    problems = validate_inputs({"n_signals": 2.5, "share_tcp_scan": 0.5}, specs)
+    assert problems == ["Attack signals is a count, so it must be a whole number."]
+
+
+def test_form_rules_accept_every_real_ip():
+    """The form must never block a record the training pipeline could produce."""
+    import pandas as pd
+
+    from src.config import IP_LOOKUP_PATH
+
+    rows = pd.read_parquet(IP_LOOKUP_PATH)[FEATURES].to_dict("records")
+    assert not [row for row in rows if consistency_warnings(row)]

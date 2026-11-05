@@ -1,8 +1,6 @@
 """Log every saved result to MLflow. Safe to re-run: runs that already exist are skipped.
 
-Usage:
-    python -m experiments.sync_mlflow                                # local database
-    EXPERIMENT_TRACKING=dagshub python -m experiments.sync_mlflow    # DagsHub (see final report)
+Usage: python -m experiments.sync_mlflow
 """
 
 from experiments.common import RESULTS_DIR, connect_tracking, load_records, log_records

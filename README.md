@@ -80,7 +80,13 @@ On Linux or macOS, `make setup-ui`, then `make serve` and `make ui` in two termi
 
 Set `API_BASE_URL` if the API runs elsewhere. The default is `http://127.0.0.1:8000`, and `.env.example` shows the file option.
 
-**The model needs 28 aggregated features, and this project has no IP lookup,** so an IP address alone can't be scored. The form asks for the features, and offers two real held-out test records as clearly labelled demos. The API serves `hgb_slow`. The experimental 400-tree model appears only as a labelled comparison.
+**The IP Detection page scores an IP three ways:**
+
+1. **Look up an IP ID.** Enter the ID of an IP from the held-out test set. The API fetches its stored features and shows the true class next to the prediction.
+2. **From attack events.** For a new IP, enter its CrowdSec signals (one row each, typed or uploaded as CSV) and its Shodan ports. The API computes the 28 features exactly as the training pipeline does.
+3. **Enter all 28 features** directly, with two real held-out test records as labelled demos.
+
+The dataset anonymises IPs, so an "IP" here is its ID (`attacker_ip_enum`), not an address like 1.2.3.4. The API serves `hgb_slow`. The experimental 400-tree model appears only as a labelled comparison.
 
 ## Dataset
 
@@ -122,15 +128,7 @@ It fails loudly otherwise.
 
 ## Experiments (MLflow)
 
-**Live run history:** [DagsHub MLflow, `vpn-proxy-classification`](https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow/#/experiments/0). It is a hosted MLflow server connected to this repo, so the runs can be browsed without installing anything. Locally, runs go to `mlflow.db` (`make mlflow` opens the UI).
-
-To log to DagsHub instead of the local database, set these before `make train`. Never commit the token.
-
-```bash
-export MLFLOW_TRACKING_URI=https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow
-export MLFLOW_TRACKING_USERNAME=<dagshub username>
-export MLFLOW_TRACKING_PASSWORD=<dagshub access token>
-```
+Runs are tracked locally in `mlflow.db`. `make mlflow` opens the MLflow UI on http://127.0.0.1:5000.
 
 `make train` logs one MLflow run per candidate to experiment `vpn-proxy-classification`, with parameters, cross-validated F1, the tuned threshold and test metrics (F1, precision, recall, PR-AUC, ROC-AUC, accuracy). The best run is tagged `best_model=true`.
 
@@ -158,12 +156,25 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 | `GET /health` | Status, and whether the model is loaded, with its name and version |
 | `GET /model-info` | The served model's identity and saved evaluation metrics |
 | `POST /predict` | The 28 features of one IP → `prediction`, `label`, `is_vpn_proxy`, `probability`, the threshold and the model version |
+| `GET /predict/ip/{ip_id}` | An IP from the held-out test set, by ID → the prediction, its stored features and its true class (404 if it isn't in the test set) |
+| `GET /ips/{ip_id}` | The stored features and true class of a test-set IP, without scoring |
+| `POST /predict/signals` | A new IP's raw signals and Shodan ports → the prediction and the 28 features computed from them |
+| `POST /features/from-signals` | The 28 features computed from raw signals, without scoring |
 | `POST /explain?top_k=8` | The prediction, plus each feature's effect: how much the probability changes when that feature is replaced by its training median |
 | `GET /docs` | Auto-generated Swagger UI, with the two example IPs below preloaded |
 
-Pydantic validates every field: counts must be ≥ 0 (or ≥ 1 where an IP always has one), shares and flags must be in [0, 1], all fields are required, and unknown fields are rejected. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
+Pydantic validates every field: counts must be whole numbers ≥ 0 (or ≥ 1 where an IP always has one), shares must be in [0, 1], flags must be 0 or 1, all fields are required, and unknown fields are rejected. Combinations the pipeline can't produce are rejected too, such as open ports with `has_shodan = 0` or attack shares adding up to more than 1 (the full list is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md)). A model file with a non-numeric threshold, missing metadata, or features that differ from the API's 28 is treated as no model. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
+
+**Scoring from an IP ID or from raw signals.** Two committed files, built by `make lookup` (`python -m src.online_features`), make this work in a fresh clone without the dataset:
+
+- `models/ip_lookup.parquet`: the 29,652 held-out test IPs, with their features and true class.
+- `models/feature_reference.json`: how many IPs each network (ASN) holds and how many IPs share each Shodan fingerprint, over the full data. `asn_unique_ips` and the three `*_shared` features compare an IP with every other IP, so a single IP's signals can't produce them; the API looks them up here.
+
+For a new IP the computed features are exactly what the training pipeline would produce: `tests/test_online_features.py` checks this on synthetic data, and it matched on 500 real test IPs rebuilt from the raw signals. If either file is missing, only the endpoints that need it return 503, and `/health` reports `ip_lookup_loaded` and `feature_reference_loaded`.
 
 ```bash
+curl http://127.0.0.1:8000/predict/ip/47584
+curl -X POST http://127.0.0.1:8000/predict/signals -H "Content-Type: application/json" -d @examples/signals_request.json
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
 # {"prediction":1,"label":"VPN/Proxy","is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
 
@@ -233,13 +244,13 @@ make lint         # ruff
 ## Repository layout
 
 ```
-src/            config, features, prepare_data, train, model_io, app (FastAPI), explain, automl_ludwig
+src/            config, features, online_features (lookup data, features for one IP), prepare_data, train, model_io, app (FastAPI), explain, automl_ludwig
 ui/             Streamlit dashboard: streamlit_app, api_client (HTTP), features, reports, views/
 tests/          pytest suite and synthetic-data fixtures
 configs/        Ludwig AutoML config
 data/sample/    small synthetic dataset (raw data goes in data/raw/, not committed)
-models/         model.joblib (served model), model_meta.json (its metrics and MLflow run ID), feature_importance.json
-examples/       example request bodies
+models/         model.joblib (served model), model_meta.json (its metrics and MLflow run ID), feature_importance.json, ip_lookup.parquet + feature_reference.json (API lookup data)
+examples/       example request bodies (28 features, and raw signals)
 ```
 
 ## Credits

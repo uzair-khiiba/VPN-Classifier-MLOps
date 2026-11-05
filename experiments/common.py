@@ -203,37 +203,14 @@ def publish(records: list[dict], experiment: str) -> None:
 
 
 def connect_tracking() -> str:
-    """Point MLflow at a separate local database (default), or at DagsHub with EXPERIMENT_TRACKING=dagshub.
-
-    The default is local because the name `zainab_experiments` is currently unusable on the
-    DagsHub server (see reports/experiments/final_experiment_report.md). Credentials come from
-    the token dagshub.init() already cached on this machine; they are
-    never read from, or written to, this repository.
-    """
+    """Point MLflow at the experiment track's own local database, kept apart from the pipeline's mlflow.db."""
     os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
-    os.environ.setdefault("MLFLOW_HTTP_REQUEST_TIMEOUT", "60")  # fail fast instead of hanging on a slow server
-    os.environ.setdefault("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "3")
     import mlflow
 
-    if os.getenv("EXPERIMENT_TRACKING", "local") == "local":
-        ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-        mlflow.set_tracking_uri(f"sqlite:///{ARTIFACT_DIR / 'zainab_mlflow.db'}")
-        if mlflow.get_experiment_by_name(EXPERIMENT_NAME) is None:
-            mlflow.create_experiment(EXPERIMENT_NAME, artifact_location=(ARTIFACT_DIR / "mlruns").as_uri())
-    else:
-        import dagshub
-        import dagshub.common.config as dagshub_config
-
-        dagshub_config.http_timeout = 120  # the default 30 s is too short for this repo's API
-        for attempt in range(1, 5):  # DagsHub's API returns occasional 502s and timeouts
-            try:
-                dagshub.init(repo_owner="uzair-khiiba", repo_name="VPN-Classifier-MLOps", mlflow=True)
-                break
-            except Exception as exc:
-                print(f"  dagshub.init attempt {attempt}/4 failed: {type(exc).__name__}", flush=True)
-                if attempt == 4:
-                    raise
-                time.sleep(30 * attempt)
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(f"sqlite:///{ARTIFACT_DIR / 'zainab_mlflow.db'}")
+    if mlflow.get_experiment_by_name(EXPERIMENT_NAME) is None:
+        mlflow.create_experiment(EXPERIMENT_NAME, artifact_location=(ARTIFACT_DIR / "mlruns").as_uri())
     mlflow.set_experiment(EXPERIMENT_NAME)
     return mlflow.get_tracking_uri()
 

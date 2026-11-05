@@ -124,15 +124,6 @@ This writes `models/feature_importance.json` and the chart `docs/feature_importa
 
 **Local:** `make mlflow`, then open http://127.0.0.1:5000 → experiment `vpn-proxy-classification`. Select all runs → **Compare**, or sort by `test_f1`. This is the screenshot for the presentation.
 
-**Online (DagsHub):** https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow/#/experiments/0. It's the same runs, browsable without installing anything. To log new runs there:
-
-```bash
-export MLFLOW_TRACKING_URI=https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow
-export MLFLOW_TRACKING_USERNAME=uzair-khiiba
-export MLFLOW_TRACKING_PASSWORD=<DagsHub token>     # never commit or share this
-make train
-```
-
 ### A9. Ludwig AutoML
 
 ```bash
@@ -282,7 +273,7 @@ Each candidate is one **run** in experiment `vpn-proxy-classification`, with:
 - **metrics:** `cv_f1`, `cv_pr_auc`, `threshold`, `test_f1`, `test_precision`, `test_recall`, `test_pr_auc`, `test_roc_auc`, `test_accuracy`
 - **tags:** the best run gets `best_model=true`. The Ludwig run gets `automl=ludwig` and also stores its best config and all 20 trial scores as artifacts.
 
-The tracking backend is a local SQLite file, `mlflow.db`, or DagsHub when `MLFLOW_TRACKING_URI` points there. The code is the same either way.
+The tracking backend is a local SQLite file, `mlflow.db`.
 
 ### B12. Ludwig AutoML (`configs/ludwig_automl.yaml`, `src/automl_ludwig.py`)
 
@@ -321,7 +312,7 @@ The tests use **small hand-made datasets** (`tests/conftest.py`), so they run in
 
 - **Reproducibility:**
   - Dependency versions are pinned in `requirements.txt`, and Python is fixed at 3.11.
-  - Every random step uses `random_state=42`. Retraining on DagsHub gave *exactly* the same metrics.
+  - Every random step uses `random_state=42`. Retraining gave *exactly* the same metrics.
   - The trained model is committed, so a clone runs the API immediately.
 - **Git workflow:** feature branches (`feat/`, `fix/`, `infra/`, `docs/`) merged into `main` with merge commits.
 - **CI/CD** (GitHub Actions lint, test and Docker build jobs, plus deployment) is Milestone 2 work, so Milestone 1 has no workflow file.
@@ -358,7 +349,7 @@ Pick one for the presentation:
 | README: pitch, architecture diagram, quick start, dataset note | `README.md`: top, Architecture (Mermaid), Quick start, Dataset |
 | Separate data-preparation step with validation | `src/prepare_data.py` (`validate_signals`, `validate_features`) |
 | Training script: held-out test set, saved versioned model | `src/train.py` → `models/vpn-clf_<model>_<timestamp>.joblib` + `models/model.joblib` |
-| MLflow: ≥3 runs with params and metric, best run justified | 6 runs (5 sklearn + Ludwig), `best_model` tag; justification in the README "Experiments" section; DagsHub link |
+| MLflow: ≥3 runs with params and metric, best run justified | 6 runs (5 sklearn + Ludwig), `best_model` tag; justification in the README "Experiments" section |
 | FastAPI `src/app.py`, `/predict`, Pydantic validation, `/docs` | `src/app.py`, plus `/explain` and `/health` from our proposal |
 | pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (43 tests), README "Tests" section |
 | AutoML (teacher's request) | Ludwig: `configs/ludwig_automl.yaml`, `src/automl_ludwig.py`, MLflow run `ludwig_automl`, README "AutoML with Ludwig" |
