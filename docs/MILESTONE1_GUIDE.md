@@ -122,7 +122,7 @@ This writes `models/feature_importance.json` and the chart `docs/feature_importa
 
 ### A8. MLflow
 
-**Local:** `make mlflow`, then open http://127.0.0.1:5000 → experiment `vpn-proxy-classification`. Select all runs → **Compare**, or sort by `test_f1`. This is the screenshot for the presentation.
+**Local, after running `src.train` yourself:** run the MLflow UI on `sqlite:///mlflow.db`, which is where `src.train` logs by default, then open http://127.0.0.1:5000 → experiment `vpn-proxy-classification`. The later experiment history is in another database: see [the operations guide](OPERATIONS_GUIDE.md#mlflow). Select all runs → **Compare**, or sort by `test_f1`. This is the screenshot for the presentation.
 
 **Online (DagsHub):** https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow/#/experiments/0. It's the same runs, browsable without installing anything. To log new runs there:
 
@@ -228,7 +228,7 @@ After building, `validate_features` checks that there is one row per IP, no NaNs
 | `rf_shallow` | Random forest, 300 trees, max depth 12 | 0.729 | 0.709 |
 | `hgb` | HistGradientBoosting, learning rate 0.1, 300 iterations | 0.766 | 0.761 |
 | **`hgb_slow`** | HistGradientBoosting, lr 0.05, 600 iterations, 63 leaves, L2 1.0 | **0.769** | **0.766** |
-| `ludwig_automl` | Ludwig neural net, best of 20 AutoML trials | 0.723 (val) | 0.711 |
+| `ludwig_automl` | Ludwig neural net, best of 20 trials | 0.713 (val) | 0.702 |
 
 **Why `hgb_slow` won:** it has the highest CV F1, and that is the rule we fixed in advance. Its test F1 is also the best, which confirms the choice wasn't luck. It reaches precision 0.733, recall 0.803 and PR-AUC 0.797, and the model file is 294 KB.
 
@@ -297,7 +297,7 @@ The tracking backend is a local SQLite file, `mlflow.db`, or DagsHub when `MLFLO
   - runs the search, scoring each trial on validation ROC-AUC
   - retrains the best trial and tunes its F1 threshold on validation
   - scores it on the same test set as the sklearn models and logs it to MLflow
-- **Result:** test F1 0.711, behind the gradient-boosted trees. On tabular data, tree ensembles usually beat neural nets, and they are smaller and faster to serve.
+- **Result:** test F1 0.702, behind the gradient-boosted trees. This is one configuration on one split. An earlier 0.711 has no saved record. Although the config names TPE, its 20 default random startup points used up all 20 trials, so this search was effectively random. `configs/ludwig_automl_v2.yaml` fixes that, but hasn't had a full run.
 - **Practical issues we solved, which make good viva answers:**
   1. **Python version:** Ludwig ≥ 0.11.1 needs Python 3.12, and the course requires 3.11, so we pinned 0.11.0.
   2. **Normalization:** Ludwig's `log1p` rejects zeros, so zero-capable counts use `zscore`.
@@ -358,9 +358,9 @@ Pick one for the presentation:
 | README: pitch, architecture diagram, quick start, dataset note | `README.md`: top, Architecture (Mermaid), Quick start, Dataset |
 | Separate data-preparation step with validation | `src/prepare_data.py` (`validate_signals`, `validate_features`) |
 | Training script: held-out test set, saved versioned model | `src/train.py` → `models/vpn-clf_<model>_<timestamp>.joblib` + `models/model.joblib` |
-| MLflow: ≥3 runs with params and metric, best run justified | 6 runs (5 sklearn + Ludwig), `best_model` tag; justification in the README "Experiments" section; DagsHub link |
+| MLflow: ≥3 runs with params and metric, best run justified | 5 sklearn runs on DagsHub with a `best_model` tag, and 116 more copied there from the local databases, including Ludwig and its 20 trials; justification in the README "Experiments" section; DagsHub link |
 | FastAPI `src/app.py`, `/predict`, Pydantic validation, `/docs` | `src/app.py`, plus `/explain` and `/health` from our proposal |
-| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/` (43 tests), README "Tests" section |
+| pytest for data prep, model loading and the prediction endpoint, plus a note on running them | `tests/`, README "Tests" section |
 | AutoML (teacher's request) | Ludwig: `configs/ludwig_automl.yaml`, `src/automl_ludwig.py`, MLflow run `ludwig_automl`, README "AutoML with Ludwig" |
 | Explainability (teacher's request) | Global: `src/explain.py` → `models/feature_importance.json`, `docs/feature_importance.png`. Local: `POST /explain`. README "Explainability" |
 | CONTRIBUTION.md with names/ERP and a task table | `CONTRIBUTION.md` |
