@@ -60,6 +60,11 @@ class FeatureSpec:
     description: str | None
     minimum: float | None
     maximum: float | None
+    kind: str | None = None
+    kind_help: str | None = None
+    unit: str | None = None
+    meaning: str | None = None
+    interpret: str | None = None
 
 
 def get_api_base_url() -> str:
@@ -151,12 +156,22 @@ class ApiClient:
             raise ApiResponseError("/explain returned an unexpected response format.")
         return result
 
+    def explain_shap(self, features: dict, top_k: int = 28) -> ApiResult:
+        required = ("explainer", "method", "base_value", "base_probability", "output_value", "probability", "threshold",
+                    "limitation", "contributions")
+        result = self._request("POST", "/explain/shap", required=required, json=features, params={"top_k": top_k})
+        if not isinstance(result.data["contributions"], list):
+            raise ApiResponseError("/explain/shap returned an unexpected response format.")
+        return result
+
     def feature_schema(self) -> tuple[list[FeatureSpec], list[dict]]:
         """The model's inputs and example records, read from the API rather than copied here."""
         spec = self._request("GET", "/openapi.json", required=("components",)).data
         try:
             schema = spec["components"]["schemas"]["IPFeatures"]
-            specs = [FeatureSpec(name, field.get("description"), field.get("minimum"), field.get("maximum"))
+            specs = [FeatureSpec(name, field.get("description"), field.get("minimum"), field.get("maximum"),
+                                 field.get("kind"), field.get("kind_help"), field.get("unit"), field.get("meaning"),
+                                 field.get("interpret"))
                      for name, field in schema["properties"].items()]
         except (KeyError, AttributeError, TypeError) as exc:
             raise ApiResponseError("/openapi.json does not describe the model's input features.") from exc

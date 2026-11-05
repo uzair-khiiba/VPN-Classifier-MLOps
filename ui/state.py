@@ -18,6 +18,7 @@ LAST_FEATURES = "last_features"
 LAST_SOURCE = "last_source"
 LAST_PREDICTION = "last_prediction"
 LAST_EXPLANATION = "last_explanation"
+LAST_SHAP = "last_shap"
 LAST_ACTUAL = "last_actual"  # the true class, when the IP came from the held-out test set
 
 
@@ -32,11 +33,12 @@ def get_client() -> ApiClient:
 
 def clear_explanation() -> None:
     st.session_state.pop(LAST_EXPLANATION, None)
+    st.session_state.pop(LAST_SHAP, None)
 
 
 def clear_result() -> None:
     """Forget the last prediction, so a failed request can never leave an old result on screen."""
-    for key in (LAST_PREDICTION, LAST_EXPLANATION, LAST_ACTUAL, LAST_SOURCE):
+    for key in (LAST_PREDICTION, LAST_EXPLANATION, LAST_SHAP, LAST_ACTUAL, LAST_SOURCE):
         st.session_state.pop(key, None)
 
 

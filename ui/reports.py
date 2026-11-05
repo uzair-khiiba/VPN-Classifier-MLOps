@@ -7,10 +7,17 @@ are not always present (a fresh clone has only models/). Pages then say what is 
 import json
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parent.parent
 MODELS = ROOT / "models"
 RESULTS = ROOT / "reports" / "experiments" / "results"
 FIGURES = ROOT / "reports" / "experiments" / "figures"
+SHAP_FIGURES = ROOT / "reports" / "figures" / "shap"
+EXPORTS = ROOT / "data" / "exports"
+EXPORT_FILE = EXPORTS / "ip_level_aggregated_features.parquet"
+SAMPLE_FILE = EXPORTS / "ip_level_sample_for_testing.csv"
+EXPORT_COMMAND = ".venv\\Scripts\\python -m src.export_features"
 COMPARISON_METRICS = ("test_f1", "test_precision", "test_recall", "test_pr_auc", "threshold")
 MATCH_TOLERANCE = 1e-3
 
@@ -93,6 +100,24 @@ def comparison_rows(served_model: str | None) -> list[dict]:
         rows.append({"model": record.get("name"), "role": "Experiment, not served",
                      **{key: record.get("metrics", {}).get(key) for key in COMPARISON_METRICS}})
     return sorted(rows, key=lambda row: -(row["test_f1"] or 0))
+
+
+def load_export() -> pd.DataFrame | None:
+    """Real per-IP records written by src.export_features: the full table, or else the small sample."""
+    if EXPORT_FILE.exists():
+        return pd.read_parquet(EXPORT_FILE)
+    return pd.read_csv(SAMPLE_FILE) if SAMPLE_FILE.exists() else None
+
+
+def shap_report(model: str | None, version: str | None) -> dict | None:
+    """The saved SHAP report, only if it was generated for exactly this model version."""
+    if not model:
+        return None
+    folder = SHAP_FIGURES / model
+    report = read_json(folder / "shap_global.json")
+    if not isinstance(report, dict) or report.get("model") != f"{model}-{version}":
+        return None
+    return {**report, "summary_plot": folder / "shap_summary.png", "bar_plot": folder / "shap_bar.png"}
 
 
 def figure(name: str) -> Path | None:

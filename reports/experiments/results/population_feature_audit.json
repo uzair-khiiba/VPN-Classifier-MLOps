@@ -1,0 +1,107 @@
+{
+  "features": [
+    "asn_unique_ips",
+    "jarm_shared",
+    "ja3s_shared",
+    "headers_hash_shared"
+  ],
+  "population_counted": {
+    "signal_ips": 148258,
+    "shodan_ips": 197679,
+    "train_ips": 118607,
+    "test_ips": 29652
+  },
+  "labels_used_in_these_features": false,
+  "finding": "Transductive by design, with no label leakage. The counts include test IPs and Kaggle test IPs but never read a label.",
+  "shift_when_counting_training_ips_only": {
+    "asn_unique_ips": {
+      "train": {
+        "rows_changed": 0.9322805567968164,
+        "median_change": 78.0,
+        "p99_change": 1425.0,
+        "max_change": 1425.0,
+        "spearman": 0.99982071346295
+      },
+      "test": {
+        "rows_changed": 1.0,
+        "median_change": 74.0,
+        "p99_change": 1425.0,
+        "max_change": 1425.0,
+        "spearman": 0.9998174638760491
+      }
+    },
+    "jarm_shared": {
+      "train": {
+        "rows_changed": 0.08297149409394049,
+        "median_change": 0.0,
+        "p99_change": 1768.9400000000023,
+        "max_change": 2359.0,
+        "spearman": 0.9874218367155622
+      },
+      "test": {
+        "rows_changed": 0.0807028193713746,
+        "median_change": 0.0,
+        "p99_change": 1759.0,
+        "max_change": 2340.0,
+        "spearman": 0.9956521632760913
+      }
+    },
+    "ja3s_shared": {
+      "train": {
+        "rows_changed": 0.08440479904221504,
+        "median_change": 0.0,
+        "p99_change": 1636.0,
+        "max_change": 4125.0,
+        "spearman": 0.9988630064690149
+      },
+      "test": {
+        "rows_changed": 0.08353568056117631,
+        "median_change": 0.0,
+        "p99_change": 1635.0,
+        "max_change": 3695.0,
+        "spearman": 0.9992625322717518
+      }
+    },
+    "headers_hash_shared": {
+      "train": {
+        "rows_changed": 0.1443169458800914,
+        "median_change": 0.0,
+        "p99_change": 795.0,
+        "max_change": 1526.0,
+        "spearman": 0.979597597106084
+      },
+      "test": {
+        "rows_changed": 0.13840550384459732,
+        "median_change": 0.0,
+        "p99_change": 795.0,
+        "max_change": 1683.0,
+        "spearman": 0.9938311667492431
+      }
+    }
+  },
+  "saved_retraining_results": {
+    "all_features": {
+      "cv_f1": 0.7693911592994163,
+      "test_f1": 0.7663088356729976,
+      "threshold": 0.901464749249132
+    },
+    "inductive_counts": {
+      "cv_f1": 0.7031431897555297,
+      "test_f1": 0.6929621036349575,
+      "threshold": 0.7877725757309804
+    },
+    "inductive_aligned": {
+      "cv_f1": 0.7656351439082449,
+      "test_f1": 0.7607573149741824,
+      "threshold": 0.9251731388923882
+    }
+  },
+  "test_f1_difference_frozen_vs_current": {
+    "diff": -0.005609704138271356,
+    "diff_low": -0.018768418538242654,
+    "diff_high": 0.00720227180078031,
+    "a_low": 0.7335079878897307,
+    "a_high": 0.7866249727384061
+  },
+  "existing_results_unchanged": true
+}

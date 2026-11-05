@@ -103,3 +103,22 @@ def test_every_real_ip_passes_the_input_rules():
 
     for row in pd.read_parquet(IP_LOOKUP_PATH)[FEATURES].to_dict("records"):
         app_module.IPFeatures(**row)
+
+
+def test_api_orders_features_by_name_and_uses_the_bundle_threshold(loaded):
+    """The dashboard sends a JSON object, so the order of its keys must not change the answer."""
+    ordered = valid_payload()
+    reversed_keys = dict(reversed(list(ordered.items())))
+    first, second = client.post("/predict", json=ordered).json(), client.post("/predict", json=reversed_keys).json()
+    assert first == second
+    bundle = app_module.STATE["bundle"]
+    assert first["threshold"] == round(float(bundle["threshold"]), 4)
+    info = client.get("/model-info").json()
+    assert info["features"] == bundle["features"] == FEATURES
+
+
+def test_schema_explains_each_feature(loaded):
+    fields = client.get("/openapi.json").json()["components"]["schemas"]["IPFeatures"]["properties"]
+    assert list(fields) == FEATURES
+    assert all(fields[name]["kind"] and fields[name]["unit"] and fields[name]["meaning"] for name in FEATURES)
+    assert fields["has_shodan"]["kind"] == "binary" and fields["share_tcp_scan"]["kind"] == "fraction"

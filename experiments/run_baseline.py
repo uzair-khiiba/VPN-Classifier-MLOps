@@ -2,7 +2,7 @@
 
 Environment variables are set before importing src.*, so src.train writes its model and
 metadata to reports/experiments/artifacts/baseline/ and its own MLflow runs to a separate
-local database. models/model.joblib and the pipeline's mlflow.db are not touched.
+local database. models/model.joblib and the DagsHub baseline experiment are not touched.
 `run_candidate` is wrapped from the outside, only to record time, size and confusion matrix.
 
 Usage:

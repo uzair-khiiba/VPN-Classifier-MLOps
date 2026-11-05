@@ -4,7 +4,9 @@ This file only adds friendly labels and groups. A feature the API declares but t
 know still appears in the form, under "Other", so the form can never hide a required input.
 """
 
+import json
 import math
+import re
 
 from ui.api_client import FeatureSpec
 
@@ -41,8 +43,51 @@ COUNT_FEATURES = {"n_signals", "n_attack_types", "n_watchers", "n_watcher_as", "
 FRACTION_PREFIX = "share_"
 
 
+def _is_count(spec: FeatureSpec) -> bool:
+    """The API documents each feature's kind; COUNT_FEATURES covers an API that doesn't."""
+    return spec.kind == "count" or spec.name in COUNT_FEATURES
+
+
 def label_for(name: str) -> str:
     return LABELS.get(name, name)
+
+
+def help_for(spec: FeatureSpec) -> str:
+    """The tooltip for one input: what it means, its unit, the kind of value, and how to read it."""
+    if not spec.meaning:
+        return spec.description or spec.name
+    return (f"{spec.meaning}\n\n**Unit:** {spec.unit}. **Kind:** {spec.kind}. {spec.kind_help}\n\n"
+            f"{spec.interpret}\n\nAPI field: `{spec.name}`")
+
+
+def parse_pasted_row(text: str, names: list[str]) -> dict[str, float]:
+    """Read pasted values: a JSON object, or a row of numbers copied from Excel in the API's feature order.
+
+    Raises ValueError with a message that's safe to show.
+    """
+    text = text.strip()
+    if not text:
+        raise ValueError("Nothing was pasted.")
+    if text.startswith("{"):
+        try:
+            parsed = json.loads(text)
+        except ValueError as exc:
+            raise ValueError("That looks like JSON, but it couldn't be read.") from exc
+        missing = [name for name in names if name not in parsed]
+        extra = [name for name in parsed if name not in names]
+        if missing or extra:
+            raise ValueError(f"The JSON doesn't match the form. Missing: {missing or 'none'}. "
+                             f"Unknown: {extra or 'none'}.")
+        cells = [parsed[name] for name in names]
+    else:
+        cells = [cell for cell in re.split(r"[\t,;\s]+", text) if cell]
+        if len(cells) != len(names):
+            raise ValueError(f"Expected {len(names)} numbers, one per feature, but found {len(cells)}. Copy only the "
+                             "feature columns, from n_signals to no_print_with_ports.")
+    try:
+        return {name: float(cell) for name, cell in zip(names, cells, strict=True)}
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Every value must be a number. Copy only the feature columns, without headers.") from exc
 
 
 def group_specs(specs: list[FeatureSpec]) -> dict[str, list[FeatureSpec]]:
@@ -66,16 +111,18 @@ def validate_inputs(values: dict, specs: list[FeatureSpec]) -> list[str]:
             problems.append(f"{label_for(spec.name)} must be at least {spec.minimum:g}.")
         elif spec.maximum is not None and value > spec.maximum:
             problems.append(f"{label_for(spec.name)} must be at most {spec.maximum:g}.")
-        elif spec.name in COUNT_FEATURES and not float(value).is_integer():
+        elif _is_count(spec) and not float(value).is_integer():
             problems.append(f"{label_for(spec.name)} is a count, so it must be a whole number.")
     return problems
 
 
-def consistency_warnings(values: dict) -> list[str]:
+def consistency_warnings(values: dict, specs: list[FeatureSpec] | None = None) -> list[str]:
     """Combinations the feature pipeline can never produce. The API rejects them (HTTP 422) with the same
-    rules, so the form reports them before sending anything."""
+    rules, so the form reports them before sending anything. With `specs`, fractional counts are reported too."""
     get = values.get
-    problems = []
+    problems = [f"{label_for(spec.name)} is a whole-number count, but {get(spec.name):g} was entered."
+                for spec in specs or [] if _is_count(spec) and get(spec.name) is not None
+                and not float(get(spec.name)).is_integer()]
     ports = (get("n_tcp_ports") or 0) + (get("n_udp_ports") or 0)
     if get("has_shodan") == 0 and ports > 0:
         problems.append("Seen by Shodan is No, but open ports are entered. It must be Yes when there are ports.")

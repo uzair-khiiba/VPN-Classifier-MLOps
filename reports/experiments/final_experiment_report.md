@@ -210,7 +210,7 @@ My first attempt was the bottom row, and it looked alarming. It turned out that 
 
 | Item | Value |
 |---|---|
-| Search | Project's unmodified config: Ray Tune, TPE, ASHA early stopping, 2 trials at a time, 1-hour budget |
+| Search | Project's unmodified config: Ray Tune, hyperopt configured for TPE, ASHA early stopping, 2 trials at a time, 1-hour budget. **Correction:** hyperopt's default of 20 random startup points used up all 20 trials, so TPE's adaptive stage never ran, and this was effectively random search |
 | Trials | 20. Two hit a Windows file-permission error in Ray's temp folder, yet the final status lists all 20 as terminated, with 20 scores |
 | Runtime | About 32 minutes for the search, 36 minutes including the final retrain. My audit and sync jobs ran during this, so treat it as approximate |
 | Best settings | Learning rate 0.0019, batch size 1024, 2 layers of 64, dropout 0.125, positive class weight 10 |
@@ -219,7 +219,7 @@ My first attempt was the bottom row, and it looked alarming. It turned out that 
 | Compared with baseline | **−0.065 [−0.089, −0.041], clearly worse** |
 | Model size | 101 KB |
 
-**Did it reproduce the documented 0.711?** No. It scored 0.702 with different best settings. Ray's parallel scheduling may contribute, but I didn't isolate a cause.
+**Did it reproduce the documented 0.711?** No. It scored 0.702 with different best settings. The Ludwig run isn't in DagsHub's experiment, so there's no tracked record to compare against. Ray's parallel scheduling may contribute, but I didn't isolate a cause.
 
 **A useful lesson:** my 2-trial check scored higher on test (0.7071) than the 20-trial search (0.7020), despite a slightly lower ROC-AUC. The search optimises ROC-AUC, which can't see the decision threshold or the rare class's precision well. **More search doesn't help much if the objective isn't what you care about.** Comparing it fairly also has limits: Ludwig trains on 80% of the training IPs because it keeps a validation split, and it got one single split rather than 5 folds.
 
@@ -318,14 +318,22 @@ These costs are small for this service. The real cost of change is process: the 
 5. **Try early stopping on a better metric,** such as `scoring="average_precision"`.
 6. **Choose the threshold from real costs** rather than from F1 alone.
 7. **Monitor Shodan coverage in production,** given how much the model depends on it.
-8. **Correct the documentation:** `hgb_slow` builds 94 trees, not 600, and `hgb` builds 77.
+8. **Correct the documentation:** `hgb_slow` builds 94 trees, not 600, `hgb` builds 77, and DagsHub has 5 runs, not 6.
 
-## MLflow
+## MLflow and DagsHub
 
-**Tracking is local,** under the exact name `zainab_experiments`. It holds 89 runs, and 1,944 logged values match the JSON results. The 2-trial Ludwig check is kept apart, in `zainab_ludwig_check`.
+**Tracking is local for now,** under the exact name `zainab_experiments`. It holds 89 runs, and 1,944 logged values match the JSON results. The 2-trial Ludwig check is kept apart, in `zainab_ludwig_check`.
 
 ```bash
 .venv/Scripts/python -m mlflow ui --backend-store-uri "sqlite:///reports/experiments/artifacts/zainab_mlflow.db" --port 5000
+```
+
+**DagsHub was not used for writing, and that sync is untested.** At the last successful check, the name `zainab_experiments` was unusable on the server: it couldn't be looked up (HTTP 500), wasn't listed, and creating it failed because it "already exists". Other unused names work normally. The original 5 runs were intact at that check, and nothing was written to them.
+
+Once the name is cleared by DagsHub support, or you choose another name:
+
+```bash
+EXPERIMENT_TRACKING=dagshub .venv/Scripts/python -m experiments.sync_mlflow
 ```
 
 ## Reproducing this work
