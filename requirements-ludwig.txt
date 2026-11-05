@@ -1,6 +1,6 @@
-# Optional AutoML environment (src/automl_ludwig.py). Kept separate from requirements.txt
-# because Ludwig pulls in PyTorch and Ray (and its own pandas/numpy pins), which the
-# API and CI do not need. Ludwig 0.11.0 is the last release that supports Python 3.11.
+# Optional AutoML environment (src/automl_ludwig.py), installed into .venv-ludwig (Python 3.11).
+# It can't share .venv: Ludwig 0.11.0 requires rich<12.5, while dagshub (requirements.txt) needs
+# rich>=13.1. It also pulls in PyTorch and Ray (~2 GB), which the API and dashboard don't need.
 --extra-index-url https://download.pytorch.org/whl/cpu
 ludwig[hyperopt]==0.11.0
 # Ludwig's Ray hyperopt executor imports dask, which the [hyperopt] extra does not install.

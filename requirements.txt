@@ -19,3 +19,7 @@ shap==0.54.1
 skops==0.16.0
 uvicorn[standard]==0.54.0
 xlsxwriter==3.3.1
+# The MLflow UI needs graphene 3. Without this pin, dagshub's gql dependency pushes the resolver to
+# graphene 2.0, which breaks the UI's run pages (ImportError: cannot import name 'ResolveInfo').
+graphene==3.4.3
+graphql-core==3.2.13

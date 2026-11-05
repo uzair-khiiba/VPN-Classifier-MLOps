@@ -4,13 +4,14 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from ui import reports
+from ui import reports, theme
 from ui.api_client import ApiError
 from ui.features import label_for
 from ui.state import format_metric, get_client, show_api_error
 
-ROLE_COLORS = {"Served by the API": "#3987e5", "Experimental, not served": "#d95926",
-               "Baseline candidate": "#199e70", "Experiment, not served": "#c98500"}
+# Fixed order, so a model keeps its colour whatever else is shown. Every bar also has a value label.
+ROLE_COLORS = {"Served by the API": theme.BLUE, "Experimental, not served": theme.ORANGE,
+               "Baseline candidate": theme.AQUA, "Experiment, not served": theme.YELLOW}
 METRICS = (("Precision", "test_precision"), ("Recall", "test_recall"), ("F1", "test_f1"), ("PR-AUC", "test_pr_auc"),
            ("ROC-AUC", "test_roc_auc"), ("Threshold", "threshold"))
 
@@ -39,7 +40,7 @@ def _comparison_chart(rows: list[dict]) -> alt.LayerChart:
                  alt.Tooltip("test_precision:Q", title="Precision", format=".3f"),
                  alt.Tooltip("test_recall:Q", title="Recall", format=".3f"),
                  alt.Tooltip("test_pr_auc:Q", title="PR-AUC", format=".3f")])
-    labels = base.mark_text(align="left", dx=4, color="#e6edf3").encode(text=alt.Text("test_f1:Q", format=".3f"))
+    labels = base.mark_text(align="left", dx=5, color=theme.INK).encode(text=alt.Text("test_f1:Q", format=".3f"))
     return (bars + labels).properties(height=alt.Step(34))
 
 
@@ -50,10 +51,10 @@ def _importance_chart(rows: list[dict]) -> alt.LayerChart:
                                            axis=alt.Axis(labelLimit=260)),
                                    x=alt.X("f1_drop:Q", title="Drop in test F1 when the feature is shuffled",
                                            axis=alt.Axis(tickCount=5)))
-    bars = base.mark_bar(cornerRadius=4, size=16, color="#3987e5").encode(
+    bars = base.mark_bar(cornerRadius=4, size=16, color=theme.BLUE).encode(
         tooltip=[alt.Tooltip("name:N", title="Feature"), alt.Tooltip("f1_drop:Q", title="F1 drop", format=".3f"),
                  alt.Tooltip("f1_drop_std:Q", title="Std across shuffles", format=".3f")])
-    labels = base.mark_text(align="left", dx=4, color="#e6edf3").encode(text=alt.Text("f1_drop:Q", format=".3f"))
+    labels = base.mark_text(align="left", dx=5, color=theme.INK).encode(text=alt.Text("f1_drop:Q", format=".3f"))
     return (bars + labels).properties(height=alt.Step(28))
 
 
@@ -110,7 +111,7 @@ def render() -> None:
     st.subheader("Model comparison")
     rows = reports.comparison_rows(served)
     if rows:
-        st.altair_chart(_comparison_chart(rows), width="stretch")
+        st.altair_chart(theme.style(_comparison_chart(rows)), width="stretch", theme=None)
         st.caption("Test scores in this chart are for learning. Models should be picked on cross-validation, "
                    "not by the highest test score.")
         with st.expander("Show as a table"):
@@ -123,7 +124,7 @@ def render() -> None:
     if importance and importance.get("importance"):
         st.caption(f"Permutation importance of {importance.get('model')} on {importance.get('n_test'):,} test IPs. "
                    "It measures how much this model relies on a feature, not whether the feature causes the label.")
-        st.altair_chart(_importance_chart(importance["importance"][:12]), width="stretch")
+        st.altair_chart(theme.style(_importance_chart(importance["importance"][:12])), width="stretch", theme=None)
         groups = reports.group_importance()
         if groups:
             st.markdown("**Shuffling whole feature groups** (related features can't cover for each other)")

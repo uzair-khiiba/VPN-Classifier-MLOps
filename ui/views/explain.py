@@ -4,14 +4,14 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from ui import reports, state
+from ui import reports, state, theme
 from ui.api_client import ApiError
 from ui.features import label_for
 from ui.shap_view import render_global_shap, render_local_shap
 from ui.state import format_metric, get_client, show_api_error
 
 TOWARD, AWAY = "Pushes toward VPN/proxy", "Pushes away from VPN/proxy"
-COLORS = {TOWARD: "#d95926", AWAY: "#3987e5"}
+COLORS = {TOWARD: theme.TOWARD_VPN, AWAY: theme.AWAY_FROM_VPN}
 
 
 def _frame(contributions: list[dict]) -> pd.DataFrame:
@@ -32,9 +32,9 @@ def effect_chart(frame: pd.DataFrame) -> alt.LayerChart:
                  alt.Tooltip("reference:Q", title="Training median"), alt.Tooltip("effect:Q", title="Effect"),
                  alt.Tooltip("probability_at_reference:Q", title="Score at median"),
                  alt.Tooltip("changes_prediction:N", title="Flips the class")])
-    labels = base.transform_filter("datum.effect >= 0").mark_text(align="left", dx=4, color="#e6edf3").encode(
+    labels = base.transform_filter("datum.effect >= 0").mark_text(align="left", dx=5, color=theme.INK).encode(
         x="effect:Q", text=alt.Text("effect:Q", format="+.3f"))
-    negative = base.transform_filter("datum.effect < 0").mark_text(align="right", dx=-4, color="#e6edf3").encode(
+    negative = base.transform_filter("datum.effect < 0").mark_text(align="right", dx=-5, color=theme.INK).encode(
         x="effect:Q", text=alt.Text("effect:Q", format="+.3f"))
     return (bars + labels + negative).properties(height=alt.Step(30))
 
@@ -129,7 +129,7 @@ def _median_tab() -> None:
     st.subheader("Most influential features")
     st.caption(f"Method reported by the API: {explanation['method']}. "
                f"Model: {explanation.get('model_version', 'n/a')}.")
-    st.altair_chart(effect_chart(frame), width="stretch")
+    st.altair_chart(theme.style(effect_chart(frame)), width="stretch", theme=None)
     _flip_summary(frame, explanation["label"])
     st.markdown("**The same results as a table**")
     table = frame[["name", "value", "reference", "effect", "probability_at_reference", "changes_prediction"]].rename(
