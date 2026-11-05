@@ -1,4 +1,12 @@
+# On Windows, make isn't usually installed: README "Windows commands" lists the same steps for Command Prompt.
+ifeq ($(OS),Windows_NT)
+PY ?= .venv/Scripts/python
+LUDWIG_PY ?= .venv-ludwig/Scripts/python
+else
 PY ?= .venv/bin/python
+LUDWIG_PY ?= .venv-ludwig/bin/python
+endif
+TRACKING_DB ?= reports/experiments/artifacts/zainab_mlflow.db
 SAMPLE_FLAG := $(if $(filter 1,$(SAMPLE)),--sample,)
 
 # SAMPLE=1 runs the pipeline on the synthetic sample in separate folders, so the
@@ -10,15 +18,16 @@ export MODEL_PATH := models/sample/model.joblib
 export MLFLOW_EXPERIMENT := vpn-proxy-classification-sample
 endif
 
-.PHONY: setup setup-automl setup-ui data train explain automl serve ui mlflow test lint all clean
+.PHONY: setup setup-automl setup-ui data train explain export shap comparison log-models publish-plan publish \
+	automl serve ui mlflow test lint all clean clean-generated
 
-setup:            ## create .venv with Python 3.11 and install pinned dependencies
-	uv venv --python 3.11 .venv
+setup:            ## create .venv with Python 3.12 and install pinned dependencies
+	uv venv --python 3.12 .venv
 	uv pip install --python $(PY) -r requirements.txt
 
 setup-automl:     ## separate .venv-ludwig for the optional Ludwig AutoML run (PyTorch + Ray)
 	uv venv --python 3.11 .venv-ludwig
-	uv pip install --python .venv-ludwig/bin/python -r requirements-ludwig.txt
+	uv pip install --python $(LUDWIG_PY) -r requirements-ludwig.txt
 
 setup-ui:         ## add the Streamlit dashboard's dependencies to .venv
 	uv pip install --python $(PY) -r requirements-ui.txt
@@ -32,8 +41,26 @@ train:            ## train all candidates, log them to MLflow, save the best mod
 explain:          ## global explainability: permutation importance of the served model on the test set
 	$(PY) -m src.explain
 
-automl:           ## Ludwig hyperparameter search (configs/ludwig_automl.yaml), best trial logged to MLflow
-	.venv-ludwig/bin/python -m src.automl_ludwig $(if $(TRIALS),--num-samples $(TRIALS),)
+export:           ## write the IP-level Excel, Parquet and CSV files to data/exports/
+	$(PY) -m src.export_features
+
+shap:             ## SHAP plots and ranking for the served model, in reports/figures/shap/
+	$(PY) -m src.shap_report
+
+comparison:       ## rebuild the verified model comparison from saved models and predictions
+	$(PY) -m experiments.verified_comparison
+
+log-models:       ## log the three models to the local packages database, and check they reload
+	$(PY) -m experiments.log_models
+
+publish-plan:     ## show what would be copied to DagsHub, contacting nothing
+	$(PY) -m experiments.publish_history --plan
+
+publish:          ## copy local run history to DagsHub (run `dagshub login` first), then verify it
+	$(PY) -m experiments.publish_history
+
+automl:           ## Ludwig hyperparameter search (configs/ludwig_automl_v2.yaml), about 1-2 hours. TRIALS=n for fewer
+	$(LUDWIG_PY) -m src.automl_ludwig $(if $(TRIALS),--num-samples $(TRIALS),)
 
 serve:            ## run the API on http://127.0.0.1:8000 (docs at /docs)
 	$(PY) -m uvicorn src.app:app --host 0.0.0.0 --port 8000
@@ -41,16 +68,23 @@ serve:            ## run the API on http://127.0.0.1:8000 (docs at /docs)
 ui:               ## run the dashboard on http://localhost:8501 (start `make serve` first)
 	$(PY) -m streamlit run ui/streamlit_app.py
 
-mlflow:           ## MLflow UI on http://127.0.0.1:5000
-	$(PY) -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+mlflow:           ## MLflow UI on http://127.0.0.1:5000 (TRACKING_DB=path for another database)
+	$(PY) -m mlflow ui --backend-store-uri sqlite:///$(TRACKING_DB) --port 5000
 
 test:
 	$(PY) -m pytest
 
 lint:
-	$(PY) -m ruff check src tests ui
+	$(PY) -m ruff check src tests ui experiments
 
 all: data train explain   ## full pipeline: prepare data, train, explain
 
-clean:
+clean:            ## remove only the synthetic-sample outputs, which are quick to rebuild
+	rm -rf data/processed-sample models/sample
+
+clean-generated:  ## delete real results and models too. Refuses unless CONFIRM=delete-results
+ifeq ($(CONFIRM),delete-results)
 	rm -rf data/processed data/processed-sample models/sample ludwig_results mlruns mlflow.db models/*.joblib models/model_meta.json
+else
+	@echo "Refusing: this deletes trained models and results. Add CONFIRM=delete-results to really do it."
+endif

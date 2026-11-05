@@ -178,3 +178,15 @@ def test_the_ui_never_imports_the_model_or_the_backend():
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module]
             assert not {name.split(".")[0] for name in names} & forbidden, f"{path} imports {names}"
+
+
+def test_pasted_rows_are_parsed_in_order_or_explained():
+    from ui.features import parse_pasted_row
+
+    names = ["a", "b", "c"]
+    assert parse_pasted_row("1\t2.5\t3", names) == {"a": 1.0, "b": 2.5, "c": 3.0}
+    assert parse_pasted_row('{"c": 3, "a": 1, "b": 2}', names) == {"a": 1.0, "b": 2.0, "c": 3.0}
+    for text, message in (("", "Nothing"), ("1 2", "Expected 3"), ("1 x 3", "must be a number"),
+                          ('{"a": 1}', "Missing"), ("{broken", "couldn't be read")):
+        with pytest.raises(ValueError, match=message):
+            parse_pasted_row(text, names)

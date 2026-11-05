@@ -1,12 +1,13 @@
-"""Explainability: show what /explain returns for the last predicted record."""
+"""Explainability: SHAP from /explain/shap, and the older median-replacement method from /explain."""
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from ui import state
+from ui import reports, state
 from ui.api_client import ApiError
 from ui.features import label_for
+from ui.shap_view import render_global_shap, render_local_shap
 from ui.state import format_metric, get_client, show_api_error
 
 TOWARD, AWAY = "Pushes toward VPN/proxy", "Pushes away from VPN/proxy"
@@ -49,9 +50,46 @@ def _flip_summary(frame: pd.DataFrame, label: str) -> None:
                    icon=":material/swap_horiz:")
 
 
+def _shap_tab(features: dict | None) -> None:
+    st.markdown("**SHAP** splits one score fairly among all 28 features, using the deployed model itself.")
+    if features:
+        if st.button("Explain with SHAP", type="primary", key="explain_shap"):
+            try:
+                with st.spinner("Asking the model..."):
+                    st.session_state[state.LAST_SHAP] = get_client().explain_shap(features).data
+            except ApiError as error:
+                st.session_state.pop(state.LAST_SHAP, None)
+                show_api_error(error)
+        explanation = st.session_state.get(state.LAST_SHAP)
+        if explanation:
+            render_local_shap(explanation, top_k=28)
+    try:
+        info = get_client().model_info().data
+    except ApiError:
+        return
+    st.divider()
+    render_global_shap(reports.shap_report(info["model"], info["version"]))
+
+
 def render() -> None:
     st.title("Explainability")
-    st.markdown("Shows which features moved this prediction, using the model's own `POST /explain` response.")
+    st.markdown("Shows which features moved this prediction. The two methods answer different questions.")
+    features = st.session_state.get(state.LAST_FEATURES)
+    if not features or not st.session_state.get(state.LAST_PREDICTION):
+        st.info("Nothing to explain yet. Run a prediction on the IP Detection page first.", icon=":material/info:")
+        pages = st.session_state.get("pages", {})
+        if "detect" in pages:
+            st.page_link(pages["detect"], label="Go to IP Detection", icon=":material/radar:")
+    shap_tab, median_tab = st.tabs(["SHAP", "Median replacement"])
+    with shap_tab:
+        _shap_tab(features)
+    with median_tab:
+        _median_tab()
+
+
+def _median_tab() -> None:
+    st.markdown("**Median replacement** is the project's original method, from `POST /explain`. It asks: what happens "
+                "if this one feature is replaced by a typical value?")
     with st.expander("How this explanation works, and its limits", expanded=True):
         st.markdown(
             "**Method:** for each feature, the API replaces only that feature with its median from the training data, "
@@ -66,10 +104,6 @@ def render() -> None:
     features = st.session_state.get(state.LAST_FEATURES)
     prediction = st.session_state.get(state.LAST_PREDICTION)
     if not features or not prediction:
-        st.info("Nothing to explain yet. Run a prediction on the IP Detection page first.", icon=":material/info:")
-        pages = st.session_state.get("pages", {})
-        if "detect" in pages:
-            st.page_link(pages["detect"], label="Go to IP Detection", icon=":material/radar:")
         return
 
     source = st.session_state.get(state.LAST_SOURCE)

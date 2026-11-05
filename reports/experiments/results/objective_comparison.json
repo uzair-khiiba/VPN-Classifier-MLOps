@@ -1,0 +1,24 @@
+{
+  "runs_compared": 72,
+  "data": "5-fold cross-validation on training IPs; test set not used",
+  "spearman_with_cv_f1": {
+    "cv_pr_auc": 0.9258032354549255,
+    "cv_roc_auc": 0.6314926189174411
+  },
+  "top10_by_f1_also_in_top10_by": {
+    "cv_pr_auc": 9,
+    "cv_roc_auc": 7
+  },
+  "cv_f1_of_run_each_metric_would_pick": {
+    "cv_pr_auc": {
+      "run": "exp_c2_oversample_1to1_trees_600",
+      "cv_f1": 0.7905464006938422
+    },
+    "cv_roc_auc": {
+      "run": "exp_b_oversample_1to10",
+      "cv_f1": 0.7848515864892528
+    }
+  },
+  "best_cv_f1_available": 0.7913153456998313,
+  "recommendation": "Validation PR-AUC as the search objective. Fixed-threshold F1 was rejected: Ludwig would measure it at 0.5, while the project tunes the threshold afterwards, and class weights change what 0.5 means from trial to trial. PR-AUC needs no threshold and focuses on the rare class. ROC-AUC stays as a second recorded metric."
+}
