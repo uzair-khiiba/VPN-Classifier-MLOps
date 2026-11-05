@@ -1,0 +1,61 @@
+{
+  "tracking_uri": "https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow",
+  "generated_at": "2026-11-05T17:48:54",
+  "experiments": [
+    {
+      "experiment": "zainab_experiments",
+      "remote_name": "zainab_experiments_history",
+      "remote_experiment_id": "1",
+      "local_runs": 89,
+      "uploaded": 0,
+      "already_there": 89,
+      "verified": 89,
+      "remote_runs_visible": 89,
+      "failed": [],
+      "mismatches": [],
+      "duplicates": []
+    },
+    {
+      "experiment": "zainab_ludwig_check",
+      "remote_name": "zainab_ludwig_check",
+      "remote_experiment_id": "2",
+      "local_runs": 1,
+      "uploaded": 0,
+      "already_there": 1,
+      "verified": 1,
+      "remote_runs_visible": 1,
+      "failed": [],
+      "mismatches": [],
+      "duplicates": []
+    },
+    {
+      "experiment": "zainab_ludwig_trials",
+      "remote_name": "zainab_ludwig_trials",
+      "remote_experiment_id": "3",
+      "local_runs": 21,
+      "uploaded": 0,
+      "already_there": 21,
+      "verified": 21,
+      "remote_runs_visible": 21,
+      "failed": [],
+      "mismatches": [],
+      "duplicates": []
+    },
+    {
+      "experiment": "zainab_baseline_repro_local",
+      "remote_name": "zainab_baseline_repro_local",
+      "remote_experiment_id": "4",
+      "local_runs": 5,
+      "uploaded": 0,
+      "already_there": 5,
+      "verified": 5,
+      "remote_runs_visible": 5,
+      "failed": [],
+      "mismatches": [],
+      "duplicates": []
+    }
+  ],
+  "total_local_runs": 116,
+  "total_verified": 116,
+  "total_failed": 0
+}

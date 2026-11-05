@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VPN Classifier Presentation Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Plan: a fact sheet a slide author can scan and trust. One column of prose, with wide tables that may scroll. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --ink: #18212b; --muted: #55616e; --line: #d8dde3; --accent: #0b5cad; --accent-soft: #e4eef8;
+  --good: #17694a; --good-soft: #e2f3ec; --warn: #8a5a00; --warn-soft: #faf0d9; --bad: #a3312a; --bad-soft: #fae7e5;
+  --display: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --surface: #1a2129; --ink: #e8edf2; --muted: #a2afbc; --line: #33404d; --accent: #7db8f2; --accent-soft: #1d3247;
+    --good: #6fd0a8; --good-soft: #17352a; --warn: #e6bd66; --warn-soft: #3a2f16; --bad: #f09a93; --bad-soft: #40211f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1a2129; --ink: #e8edf2; --muted: #a2afbc; --line: #33404d; --accent: #7db8f2; --accent-soft: #1d3247;
+  --good: #6fd0a8; --good-soft: #17352a; --warn: #e6bd66; --warn-soft: #3a2f16; --bad: #f09a93; --bad-soft: #40211f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+main { max-width: 1060px; margin: 0 auto; padding: 32px 20px 72px; display: grid; gap: 40px; }
+header { display: grid; gap: 10px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
+h2 { font-size: 1.45rem; padding-top: 8px; border-top: 2px solid var(--ink); }
+h3 { font-size: 1.05rem; }
+p, ul, ol { margin: 0; }
+section { display: grid; gap: 14px; scroll-margin-top: 16px; min-width: 0; }
+section > p, section > ul, section > ol, header > p { max-width: 72ch; }
+ul, ol { padding-left: 22px; display: grid; gap: 5px; }
+.meta { color: var(--muted); }
+code { font: 0.88em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+nav { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.92rem; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); padding: 14px; border-radius: 6px; display: grid; gap: 2px; }
+.tile b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.tile span { color: var(--muted); font-size: 0.9rem; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; background: var(--accent-soft); }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.hl td { background: var(--accent-soft); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+.done { color: var(--good); background: var(--good-soft); } .part { color: var(--warn); background: var(--warn-soft); } .todo { color: var(--bad); background: var(--bad-soft); }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; counter-reset: s; }
+.flow div { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 6px; padding: 10px 12px; font-size: 0.9rem; }
+.flow b { display: block; }
+.callout { background: var(--warn-soft); border-left: 4px solid var(--warn); padding: 12px 14px; border-radius: 0 6px 6px 0; max-width: 80ch; }
+.prompt { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 10px; }
+.prompt pre { margin: 0; white-space: pre-wrap; font: 0.88rem/1.55 var(--mono); }
+button { justify-self: start; font: 600 0.9rem var(--body); color: var(--surface); background: var(--accent); border: 0; border-radius: 5px; padding: 7px 14px; cursor: pointer; }
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+figure { margin: 0; background: #ffffff; color: #18212b; border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 8px; min-width: 0; }
+figure img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+figcaption { font-size: 0.86rem; }
+figcaption code { background: #e4eef8; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>VPN/Proxy IP Classifier: presentation brief</h1>
+  <p class="meta">MLOps course project, BS Computer Science, Fall 2026. Zainab Soomro (28367) and Uzair Ahmed Khuhro (29173). Facts checked against the repository on 5 November 2026.</p>
+  <p>Everything needed to build the slides: the verified results, what was built, what's still unfinished, a slide-by-slide outline and the figures to use.</p>
+  <nav aria-label="Sections">
+    <a href="#prompt">Prompt</a><a href="#glance">At a glance</a><a href="#problem">Problem and data</a><a href="#pipeline">Pipeline</a><a href="#results">Results</a><a href="#experiments">Experiments</a><a href="#explain">Explainability</a><a href="#ludwig">Ludwig</a><a href="#mlflow">MLflow and DagsHub</a><a href="#serving">Serving</a><a href="#quality">Quality</a><a href="#status">Status</a><a href="#limits">Limitations</a><a href="#outline">Slide outline</a><a href="#figures">Figures</a><a href="#qa">Viva questions</a>
+  </nav>
+</header>
+
+<section id="prompt">
+  <h2>Prompt for making the slides</h2>
+  <p>Paste this into Claude along with this page.</p>
+  <div class="prompt">
+    <pre id="prompt-text">Using the attached project brief, create a PowerPoint presentation of about 16 slides for our MLOps course. The audience is our instructor and classmates, who know machine learning basics but not this project. Follow the brief's slide outline and use its figures.
+
+Rules:
+- Use only the numbers in the brief. Don't round them differently or add new results.
+- Always say which model a number belongs to. The deployed model (hgb_slow, test F1 0.7663) and the best experimental model (400 trees, test F1 0.7876) are different, and the experimental model isn't deployed.
+- Label cross-validation, validation and test scores. Models were selected on cross-validation or validation scores, never on test scores.
+- Describe Ludwig as hyperparameter search on a fixed neural network, not full AutoML. Don't say Ludwig or neural networks are worse in general.
+- Describe SHAP as explaining the model's behaviour, not as showing what causes an IP to be a VPN or proxy.
+- Check the Status section. Anything marked in progress or not done must be presented that way, never as finished.
+- Each slide title should state its main finding. Keep slides light, and put details in the speaker notes.</pre>
+    <button type="button" id="copy">Copy prompt</button>
+  </div>
+</section>
+
+<section id="glance">
+  <h2>At a glance</h2>
+  <div class="tiles">
+    <div class="tile"><b>148,259</b><span>attacker IPs, from 61.6M signals</span></div>
+    <div class="tile"><b>1.95%</b><span>are VPN/proxy</span></div>
+    <div class="tile"><b>28</b><span>engineered features per IP</span></div>
+    <div class="tile"><b>0.7663</b><span>test F1, deployed <code>hgb_slow</code></span></div>
+    <div class="tile"><b>0.7876</b><span>test F1, best experimental, not deployed</span></div>
+    <div class="tile"><b>95</b><span>tracked local experiment runs, plus 21 Ludwig trial records</span></div>
+  </div>
+  <p>The project predicts whether an attacker IP seen by CrowdSec is a VPN or proxy. It covers the full MLOps path: data validation, feature engineering, experiment tracking, model comparison, explainability, a FastAPI service, a Streamlit dashboard and automated tests.</p>
+</section>
+
+<section id="problem">
+  <h2>Problem and data</h2>
+  <ul>
+    <li><b>Task:</b> binary classification, one prediction per attacker IP.</li>
+    <li><b>Source:</b> CrowdSec community data from a Kaggle competition. <code>train.parq</code> has 61,629,685 attack signals from 148,259 IPs (30 July to 29 August 2023). <code>shodan_df_hashed.csv</code> has open ports and hashed fingerprints.</li>
+    <li><b>Main metric:</b> F1 of the VPN/proxy class. Labelling every IP "not VPN" scores 98.05% accuracy but F1 of 0, so accuracy is misleading.</li>
+    <li><b>Split:</b> stratified 80/20 by IP: 118,607 train, 29,652 test. One row per IP means no IP appears in both. Kaggle's own test file has no labels, so our test set is a held-out share of labelled IPs.</li>
+  </ul>
+  <h3>The 28 features</h3>
+  <div class="scroll"><table>
+    <tr><th>Group</th><th>Features</th><th>Kind</th></tr>
+    <tr><td>Volume and timing (7)</td><td><code>n_signals</code>, <code>active_hours</code>, <code>n_active_days</code>, <code>signals_per_day</code>, <code>max_signals_per_hour</code>, <code>mean_gap_s</code>, <code>median_gap_s</code></td><td>Counts, durations, a rate</td></tr>
+    <tr><td>Breadth (5)</td><td><code>n_attack_types</code>, <code>n_watchers</code>, <code>n_watcher_as</code>, <code>n_watcher_countries</code>, <code>n_attacker_as</code></td><td>Counts</td></tr>
+    <tr><td>Attack mix (8)</td><td><code>share_</code> of http_spam, http_scan, http_exploit, http_bruteforce, http_crawl, ssh_bruteforce, pop3_imap_bruteforce, tcp_scan</td><td>Fractions, 0 to 1</td></tr>
+    <tr><td>Network crowding (1)</td><td><code>asn_unique_ips</code></td><td>Population count</td></tr>
+    <tr><td>Shodan (7)</td><td><code>has_shodan</code>, <code>n_tcp_ports</code>, <code>n_udp_ports</code>, <code>jarm_shared</code>, <code>ja3s_shared</code>, <code>headers_hash_shared</code>, <code>no_print_with_ports</code></td><td>Binary flags, counts, population counts</td></tr>
+  </table></div>
+</section>
+
+<section id="pipeline">
+  <h2>Pipeline</h2>
+  <div class="flow">
+    <div><b>1. Prepare</b><code>src/prepare_data.py</code> validates the raw data, then DuckDB builds one row per IP</div>
+    <div><b>2. Train</b><code>src/train.py</code> compares 5 models with 5-fold CV and tunes an F1 threshold</div>
+    <div><b>3. Experiment</b><code>experiments/</code> runs A to F on the same split and folds</div>
+    <div><b>4. Track</b>MLflow records parameters, metrics and artifacts, in SQLite or on DagsHub</div>
+    <div><b>5. Serve</b>FastAPI loads <code>models/model.joblib</code> at startup</div>
+    <div><b>6. Use</b>The Streamlit dashboard reaches the model only over HTTP</div>
+  </div>
+  <p>MLflow records results, but it doesn't choose or serve models. The API loads a file from disk. Only <code>experiments/promote_model.py</code>, with explicit approval, or a new <code>src/train.py</code> run changes that file.</p>
+</section>
+
+<section id="results">
+  <h2>Verified results</h2>
+  <p>Rebuilt by <code>experiments/verified_comparison.py</code>, which stops if a score doesn't match its saved record. All models use the same 29,652 test IPs (fingerprint <code>7a8a6674be67b514</code>), the same features and the same evaluation code.</p>
+  <div class="scroll"><table>
+    <tr><th>Model</th><th>Status</th><th>Selected on</th><th class="n">CV F1</th><th class="n">Val F1</th><th class="n">Threshold</th><th class="n">Precision</th><th class="n">Recall</th><th class="n">Test F1</th><th class="n">PR-AUC</th><th class="n">ROC-AUC</th><th class="n">TP</th><th class="n">FP</th><th class="n">FN</th><th class="n">TN</th></tr>
+    <tr class="hl"><td><code>hgb_slow</code> (20261019-173911)</td><td>Deployed</td><td>5-fold CV F1</td><td class="n">0.7694</td><td class="n">n/a</td><td class="n">0.9015</td><td class="n">0.733</td><td class="n">0.803</td><td class="n"><b>0.7663</b></td><td class="n">0.797</td><td class="n">0.988</td><td class="n">464</td><td class="n">169</td><td class="n">114</td><td class="n">28,905</td></tr>
+    <tr class="hl"><td><code>exp_c_trees_400_no_early_stop</code></td><td>Best experimental, not deployed</td><td>5-fold CV F1, simplest within margin</td><td class="n">0.7885</td><td class="n">n/a</td><td class="n">0.8280</td><td class="n">0.786</td><td class="n">0.789</td><td class="n"><b>0.7876</b></td><td class="n">0.845</td><td class="n">0.990</td><td class="n">456</td><td class="n">124</td><td class="n">122</td><td class="n">28,950</td></tr>
+    <tr><td><code>hgb</code></td><td>Baseline candidate</td><td>5-fold CV F1</td><td class="n">0.7661</td><td class="n">n/a</td><td class="n">0.9148</td><td class="n">0.732</td><td class="n">0.792</td><td class="n">0.7608</td><td class="n">0.781</td><td class="n">0.989</td><td class="n">458</td><td class="n">168</td><td class="n">120</td><td class="n">28,906</td></tr>
+    <tr><td><code>rf</code></td><td>Baseline candidate</td><td>5-fold CV F1</td><td class="n">0.7607</td><td class="n">n/a</td><td class="n">0.3401</td><td class="n">0.708</td><td class="n">0.798</td><td class="n">0.7502</td><td class="n">0.804</td><td class="n">0.987</td><td class="n">461</td><td class="n">190</td><td class="n">117</td><td class="n">28,884</td></tr>
+    <tr><td><code>rf_shallow</code></td><td>Baseline candidate</td><td>5-fold CV F1</td><td class="n">0.7291</td><td class="n">n/a</td><td class="n">0.8268</td><td class="n">0.704</td><td class="n">0.713</td><td class="n">0.7085</td><td class="n">0.729</td><td class="n">0.987</td><td class="n">412</td><td class="n">173</td><td class="n">166</td><td class="n">28,901</td></tr>
+    <tr><td><code>ludwig_automl</code> (first search)</td><td>Experiment, not deployed</td><td>Validation ROC-AUC, one split</td><td class="n">n/a</td><td class="n">0.7131</td><td class="n">0.8216</td><td class="n">0.693</td><td class="n">0.711</td><td class="n">0.7020</td><td class="n">0.687</td><td class="n">0.983</td><td class="n">411</td><td class="n">182</td><td class="n">167</td><td class="n">28,892</td></tr>
+    <tr><td><code>logreg</code></td><td>Baseline candidate</td><td>5-fold CV F1</td><td class="n">0.5936</td><td class="n">n/a</td><td class="n">0.9393</td><td class="n">0.574</td><td class="n">0.621</td><td class="n">0.5968</td><td class="n">0.551</td><td class="n">0.973</td><td class="n">359</td><td class="n">266</td><td class="n">219</td><td class="n">28,808</td></tr>
+  </table></div>
+  <ul>
+    <li><b>Is the 400-tree gain real?</b> Against the deployed model: +0.0211 test F1, with a 95% paired bootstrap interval of +0.0035 to +0.0374. The low end is close to zero, so the true gain could be small.</li>
+    <li><b>Ludwig vs the deployed model:</b> −0.0645, interval −0.0886 to −0.0406.</li>
+    <li><b>Is Ludwig's comparison fair?</b> Only partly. Test IPs, features and metric code match, but Ludwig trained on 94,885 IPs instead of 118,607, used one validation split instead of 5 folds, and searched on ROC-AUC. This is one configuration on one split.</li>
+    <li><b>Don't use the old Ludwig figure.</b> The README used to show test F1 0.711, but no saved run supports it. The tracked result is 0.7020.</li>
+  </ul>
+</section>
+
+<section id="experiments">
+  <h2>What the experiments found</h2>
+  <div class="scroll"><table>
+    <tr><th>Experiment</th><th>Question</th><th>Finding</th></tr>
+    <tr><td>Baseline</td><td>Does the original result reproduce?</td><td>Yes: all 5 models match the documented scores to 4 decimal places.</td></tr>
+    <tr><td>A: threshold</td><td>Does tuning the threshold matter?</td><td><code>hgb_slow</code> at the default 0.5 has test F1 0.6041 (precision 0.453, recall 0.908). At the tuned threshold 0.9015 it has 0.7663.</td></tr>
+    <tr><td>B: imbalance</td><td>Does resampling help?</td><td>Oversampling 1:1 reached test F1 0.7813 and no class weights 0.7772. Undersampling 1:1 fell to 0.7229. Neither was selected overall.</td></tr>
+    <tr><td>C: hyperparameters</td><td>Which settings matter?</td><td><b>Biggest finding:</b> <code>hgb_slow</code> was documented as 600 trees but built only 94, because scikit-learn's early stopping turned on automatically. Turning it off with 400 trees gave the selected model.</td></tr>
+    <tr><td>D: features</td><td>How much does it rely on Shodan?</td><td>Heavily. Without the 7 Shodan features, test F1 falls to 0.5923. Only the Shodan features gives 0.7451.</td></tr>
+    <tr><td>E: model families</td><td>Which family wins?</td><td><code>hgb_slow</code> by CV F1, though its win over <code>hgb</code> is within fold-to-fold noise of about ±0.02.</td></tr>
+    <tr><td>F: Ludwig</td><td>Does automated search on a neural network beat trees?</td><td>Not in this run: test F1 0.7020. See the Ludwig section.</td></tr>
+  </table></div>
+  <p><b>Selection rule:</b> highest 5-fold CV F1, must beat the baseline by at least 0.003, and the simplest option within 0.003 of the best wins. The highest test F1 of any run, 0.7935, wasn't chosen, because choosing it would be selecting on the test set. About 50 configurations were scored on test, so only the selected model's test score is a fair estimate.</p>
+  <p><b>Population-count features (leakage check):</b> <code>asn_unique_ips</code>, <code>jarm_shared</code>, <code>ja3s_shared</code> and <code>headers_hash_shared</code> count across the whole raw files before the split, including test IPs and 49,420 unlabelled Kaggle test IPs. They never read a label, so no label information leaks, but the design is transductive. Counted over training IPs only, using one frozen table, test F1 moves from 0.7663 to 0.7608, with a difference interval of −0.019 to +0.007. Existing results weren't regenerated. An alternative table can be written with a flag.</p>
+  <p><b>A real risk:</b> an offset of one between how training and new rows were counted cost about 0.06 F1. These counts must be computed identically in training and serving.</p>
+</section>
+
+<section id="explain">
+  <h2>Explainability</h2>
+  <div class="scroll"><table>
+    <tr><th>Method</th><th>Scope</th><th>Question it answers</th><th>Where</th></tr>
+    <tr><td>Permutation importance</td><td>Global</td><td>How much does test F1 drop if this feature is shuffled?</td><td><code>src/explain.py</code></td></tr>
+    <tr><td>Median replacement</td><td>Local</td><td>How does the score change if this one feature becomes typical?</td><td><code>POST /explain</code></td></tr>
+    <tr><td>SHAP summary and bar plots</td><td>Global</td><td>How much does each feature move the score, on average?</td><td><code>src/shap_report.py</code></td></tr>
+    <tr><td>SHAP local values</td><td>Local</td><td>Which features pushed this score toward or away from VPN/proxy?</td><td><code>POST /explain/shap</code>, dashboard</td></tr>
+  </table></div>
+  <ul>
+    <li><b>Explainer used:</b> <code>shap.TreeExplainer</code>, tree-path-dependent, on shap 0.54.1 and scikit-learn 1.9.1. It works directly on <code>HistGradientBoosting</code>, so no fallback was needed. Non-tree models fall back to <code>PermutationExplainer</code>, and the response names the one that ran.</li>
+    <li><b>Correctness:</b> values are in log-odds of the VPN/proxy class. Every call checks that the base value plus the SHAP values equals the model's own log-odds. Measured error on real data was about 1e-14.</li>
+    <li><b>Top SHAP features, <code>hgb_slow</code>, all 29,652 test IPs:</b> <code>has_shodan</code> (0.734), <code>n_tcp_ports</code> (0.362), <code>signals_per_day</code> (0.285), <code>asn_unique_ips</code> (0.151), <code>share_http_scan</code> (0.148), <code>headers_hash_shared</code> (0.122).</li>
+    <li><b>Top permutation features, same model:</b> <code>has_shodan</code> (F1 drop 0.445), <code>n_tcp_ports</code> (0.348), <code>headers_hash_shared</code> (0.247), <code>asn_unique_ips</code> (0.110), <code>share_http_scan</code> (0.039).</li>
+    <li><b>Agreement:</b> the two rankings have a Spearman correlation of 0.83. They differ because one measures movement in the score and the other measures dependence for F1.</li>
+    <li><b>Limit:</b> all of these describe the model's behaviour. None shows that a feature causes an IP to be a VPN or proxy.</li>
+  </ul>
+</section>
+
+<section id="ludwig">
+  <h2>Ludwig hyperparameter search</h2>
+  <p>We fix one ECD (encoder-combiner-decoder) neural network, and Ludwig tunes its settings: learning rate, batch size, layers, width, dropout and positive-class weight. It doesn't compare model families or choose features, so this is hyperparameter optimisation rather than full AutoML.</p>
+  <div class="scroll"><table>
+    <tr><th></th><th>First search (<code>ludwig_automl.yaml</code>)</th><th>Version 2 (<code>ludwig_automl_v2.yaml</code>)</th></tr>
+    <tr><td>Status</td><td><span class="pill done">Run</span> 20 of 20 trials finished, 2 retried after a Windows permission error, 0 permanently failed</td><td><span class="pill part">Built, full search not run</span></td></tr>
+    <tr><td>Trials</td><td>20</td><td>30</td></tr>
+    <tr><td>Random startup trials</td><td>20, the default</td><td>10</td></tr>
+    <tr><td>Adaptive TPE trials</td><td>0: this was random search</td><td>Up to 20</td></tr>
+    <tr><td>Objective</td><td>Validation ROC-AUC</td><td>Validation PR-AUC, with ROC-AUC recorded too</td></tr>
+    <tr><td>Final retrain</td><td>Early stopping on, unlike the trials</td><td>Early stopping off, like the trials</td></tr>
+    <tr><td>Trial tracking</td><td>One JSON file, backfilled later as 20 nested runs</td><td>Nested MLflow runs, with measured retries and phases</td></tr>
+    <tr><td>Test F1</td><td>0.7020</td><td>Not available</td></tr>
+  </table></div>
+  <ul>
+    <li><b>The TPE discovery:</b> the config names TPE, but its default of 20 random startup points used up all 20 trials. Inspecting the real searcher object confirmed <code>n_startup_jobs = 20</code>.</li>
+    <li><b>A second, hidden problem:</b> Ludwig 0.11 silently drops <code>n_initial_points</code> when it loads a config, so setting it in YAML does nothing. The script now applies it to the searcher directly, stops if that fails, and counts which suggestions really were random or adaptive. A 4-trial check on the real pipeline, set to 2 startup points, measured 2 random and 2 adaptive suggestions.</li>
+    <li><b>Why PR-AUC:</b> across 72 runs on the same folds, using CV results only, PR-AUC tracks F1 far better than ROC-AUC (Spearman 0.926 vs 0.631). Those are tree models, so it's evidence about the metrics on this data. Ludwig has no binary PR-AUC, so we added one, and it matches scikit-learn's value on a test sample (0.85766).</li>
+    <li><b>Test safety:</b> the test set isn't given to the search, and the threshold is tuned on validation only. Validation also picks the best epoch, so that threshold is slightly optimistic.</li>
+  </ul>
+</section>
+
+<section id="mlflow">
+  <h2>MLflow and DagsHub</h2>
+  <div class="scroll"><table>
+    <tr><th>Store</th><th>Experiment</th><th class="n">Runs</th></tr>
+    <tr><td rowspan="2"><code>zainab_mlflow.db</code> (local)</td><td><code>zainab_experiments</code>: baseline 5, A 10, B 7, C 40, C2 8, D 12, E 5, Ludwig 1, summary 1</td><td class="n">89</td></tr>
+    <tr><td><code>zainab_ludwig_check</code></td><td class="n">1</td></tr>
+    <tr><td><code>baseline_repro_mlflow.db</code> (local)</td><td><code>zainab_baseline_repro_local</code></td><td class="n">5</td></tr>
+    <tr><td rowspan="2"><code>model_packages_mlflow.db</code> (local, new)</td><td><code>zainab_ludwig_trials</code>: 1 parent + 20 nested trials</td><td class="n">21</td></tr>
+    <tr><td><code>zainab_model_packages</code>: the 3 logged models</td><td class="n">3</td></tr>
+    <tr><td>DagsHub (remote, public)</td><td><code>vpn-proxy-classification</code> (5 original runs), <code>zainab_experiments_history</code> (89), <code>zainab_ludwig_check</code> (1), <code>zainab_ludwig_trials</code> (21), <code>zainab_baseline_repro_local</code> (5)</td><td class="n">121</td></tr>
+  </table></div>
+  <ul>
+    <li><b>Checked against results files:</b> 1,944 metric values in <code>zainab_experiments</code> match the saved JSON, with 0 mismatches.</li>
+    <li><b>Why history wasn't on DagsHub:</b> the name <code>zainab_experiments</code> is broken on the server (lookups fail with server errors), the API was flaky, and <code>dagshub login</code> tokens are short-lived.</li>
+    <li><b>The fix:</b> <code>experiments/publish_history.py</code> copies runs without rerunning anything. A <code>mirror.source_run_id</code> tag prevents duplicates and lets interrupted uploads resume, and every value is verified afterwards. Those runs are under <code>zainab_experiments_history</code>, keeping their original names. Result: 116 of 116 verified, and a repeat run created no duplicates.</li>
+    <li><b>Models:</b> <code>experiments/log_models.py</code> logs the deployed and candidate models with <code>mlflow.sklearn</code>, plus the API bundle and a model card. Ludwig is logged as plain artifacts, because MLflow has no flavor for it here, and it's never registered. Downloading all three back from DagsHub gave zero prediction difference. The registry alias <code>production</code> only records what's deployed: the API doesn't read it.</li>
+    <li><b>Public repository:</b> the DagsHub repo is public. The dataset isn't uploaded, and the secret scan of the run metadata found nothing.</li>
+  </ul>
+</section>
+
+<section id="serving">
+  <h2>API, dashboard and data export</h2>
+  <div class="scroll"><table>
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td><code>GET /health</code>, <code>GET /model-info</code></td><td>Status, model identity, feature order and saved metrics</td></tr>
+    <tr><td><code>POST /predict</code></td><td>28 features in, class, score, threshold and model version out</td></tr>
+    <tr><td><code>POST /explain</code></td><td>Median-replacement effects (the original method, not SHAP)</td></tr>
+    <tr><td><code>POST /explain/shap</code>, <code>GET /explain/shap/global</code></td><td>SHAP for one prediction, and the saved ranking for the served model</td></tr>
+  </table></div>
+  <ul>
+    <li><b>Manual form kept:</b> the dashboard still has all 28 inputs, now with meaning, unit and kind on each field, plus reset, loading a real record by ID, random records by split and label, and pasting a row from Excel.</li>
+    <li><b>The model doesn't read IP addresses.</b> It scores engineered features, and there's no automatic Shodan lookup, so an arbitrary IP can't be classified from its address alone.</li>
+    <li><b>Excel export:</b> <code>python -m src.export_features</code> writes all 148,259 IPs to <code>data/exports/ip_level_aggregated_features.xlsx</code> (23 MB), with an Instructions sheet, a Feature_guide sheet, a frozen header and filters, plus a 60-row sample covering every outcome. Values are read from the training tables, so nothing is recalculated.</li>
+    <li><b>Safe deployment:</b> <code>experiments/promote_model.py</code> changes nothing without <code>--approve</code> and a reason. It refuses a lower CV F1 whatever the test score, archives the old model and logs the decision.</li>
+    <li><b>Speed:</b> on the live API, <code>/predict</code> took about 80 ms and <code>/explain/shap</code> about 75 to 560 ms, on a laptop with other jobs running.</li>
+  </ul>
+</section>
+
+<section id="quality">
+  <h2>Testing and reproducibility</h2>
+  <ul>
+    <li><b>Tests:</b> 164 passed, up from 105, including the experiment helper tests. New tests cover the export, SHAP correctness and class choice, history copying without duplicates, model reload, promotion refusals and the deployed model's hash.</li>
+    <li><b>Lint:</b> Ruff passes across <code>src</code>, <code>tests</code>, <code>ui</code> and <code>experiments</code>.</li>
+    <li><b>Live check:</b> real records of all four outcomes (true positive, false alarm, missed, true negative) gave the same score through the running API as the model directly.</li>
+    <li><b>Environments:</b> Python 3.12 for the API and experiments, and Python 3.11 for Ludwig, with PyTorch and Ray kept separate.</li>
+    <li><b>Backups:</b> databases, models and results were copied with checksums before any changes. The deployed model and the main experiment database are byte-for-byte unchanged.</li>
+    <li><b>Windows:</b> <code>docs/OPERATIONS_GUIDE.md</code> has tested Command Prompt commands.</li>
+  </ul>
+</section>
+
+<section id="status">
+  <h2>Status</h2>
+  <div class="callout">Status on 5 November 2026. The items marked Not run, Not decided, Check and To fill in are still open, so present them that way.</div>
+  <div class="scroll"><table>
+    <tr><th>Item</th><th>Status</th><th>Detail</th></tr>
+    <tr><td>Excel dataset</td><td><span class="pill done">Done</span></td><td>Verified against the training tables</td></tr>
+    <tr><td>SHAP in API and dashboard</td><td><span class="pill done">Done</span></td><td>Both tree models. Automated tests pass, but pages haven't been clicked through in a browser</td></tr>
+    <tr><td>Model comparison, leakage audit</td><td><span class="pill done">Done</span></td><td>Generated from saved results</td></tr>
+    <tr><td>Local model logging and reload</td><td><span class="pill done">Done</span></td><td>All 3 models, zero prediction difference</td></tr>
+    <tr><td>Docs and Windows commands</td><td><span class="pill done">Done</span></td><td>README, guides and Makefile updated</td></tr>
+    <tr><td>History upload to DagsHub</td><td><span class="pill done">Done</span></td><td>116 of 116 runs verified on the server, with 0 failures. A repeat run sent nothing and created no duplicates</td></tr>
+    <tr><td>Models on DagsHub, Model Registry</td><td><span class="pill done">Done</span></td><td>All 3 models uploaded, then downloaded again with zero prediction difference. Registry: <code>vpn-proxy-classifier</code> version 1 <code>production</code> (<code>hgb_slow</code>), version 2 <code>candidate</code> (400 trees). Ludwig is deliberately not registered</td></tr>
+    <tr><td>Ludwig v2 pipeline check</td><td><span class="pill done">Done</span></td><td>A short 4-trial run on the real pipeline worked, with 2 random and 2 adaptive suggestions measured. It only tested the pipeline, so don't present its scores as a result</td></tr>
+    <tr><td>Full Ludwig v2 search</td><td><span class="pill todo">Not run</span></td><td>Needs approval: 1 to 2 hours</td></tr>
+    <tr><td>Deploying the 400-tree model</td><td><span class="pill todo">Not decided</span></td><td>Packaged and ready, but needs the team's decision</td></tr>
+    <tr><td>Raw data files</td><td><span class="pill part">Check</span></td><td><code>train.parq</code>, <code>test.parq</code>, <code>train.csv</code>, <code>shodan_df_hashed.csv</code> and <code>samples_submissions.csv</code> are currently in the Recycle Bin. Rebuilding the dataset needs them. The app doesn't</td></tr>
+    <tr><td>Team details</td><td><span class="pill todo">To fill in</span></td><td>Reflections, the rest of the contribution split, and the review note in <code>AI_USAGE.md</code></td></tr>
+  </table></div>
+</section>
+
+<section id="limits">
+  <h2>Limitations to state honestly</h2>
+  <ul>
+    <li>The label's origin is unknown. If labels were built using Shodan, its predictive power could be partly circular, so this should be asked of the data provider.</li>
+    <li>The Shodan file has no timestamps, so we can't confirm it predates the attacks.</li>
+    <li>New IPs need their signals aggregated and Shodan data supplied. The project has no live lookup.</li>
+    <li>Population counts must be computed identically in serving, and the API can't check how they were produced.</li>
+    <li>The best model isn't deployed yet, and the 400-tree gain has a low end close to zero.</li>
+    <li>Scores use class weights, so read them against the threshold rather than as literal probabilities.</li>
+    <li>The final selection rule was written after seeing CV results, though before any new test scoring.</li>
+  </ul>
+</section>
+
+<section id="outline">
+  <h2>Suggested slide outline</h2>
+  <div class="scroll"><table>
+    <tr><th class="n">#</th><th>Slide title</th><th>Content</th><th>Figure</th></tr>
+    <tr><td class="n">1</td><td>Detecting VPN and proxy attackers from their behaviour</td><td>Project, course, team</td><td>None</td></tr>
+    <tr><td class="n">2</td><td>Only 1.95% of attacker IPs are VPN/proxy, so accuracy misleads</td><td>Task, why it matters, F1 as the metric</td><td>Tiles from At a glance</td></tr>
+    <tr><td class="n">3</td><td>61.6M signals become one row per IP, with 28 features</td><td>Data sources, per-IP design, feature groups, split</td><td>Feature table</td></tr>
+    <tr><td class="n">4</td><td>The pipeline runs from raw signals to a served model</td><td>Six stages. MLflow records, and doesn't deploy</td><td>Pipeline diagram</td></tr>
+    <tr><td class="n">5</td><td>Tuning the threshold raised F1 from 0.60 to 0.77</td><td>Experiment A, and the imbalance results from B</td><td><code>exp_a_threshold_tradeoff.png</code></td></tr>
+    <tr><td class="n">6</td><td>A hidden default limited our "600-tree" model to 94 trees</td><td>Experiment C, and why testing assumptions matters</td><td><code>exp_c_trees_vs_f1.png</code></td></tr>
+    <tr><td class="n">7</td><td>The model depends heavily on Shodan</td><td>Experiment D, and the leakage check</td><td><code>exp_d_feature_ablation.png</code></td></tr>
+    <tr><td class="n">8</td><td>Model comparison: selected on CV, reported on test</td><td>Verified table, selection rule, test-set discipline</td><td><code>model_comparison.png</code></td></tr>
+    <tr><td class="n">9</td><td>The deployed and best experimental models are different</td><td>0.7663 vs 0.7876, the interval, and approval-only promotion</td><td><code>pr_curves.png</code></td></tr>
+    <tr><td class="n">10</td><td>Ludwig tuned one network, and our first search was really random</td><td>What it is, the TPE discovery, 0.7020, fairness limits</td><td>Ludwig comparison table</td></tr>
+    <tr><td class="n">11</td><td>Version 2 fixes the search, but hasn't had a full run</td><td>TPE fix, PR-AUC evidence, nested trials, current status</td><td>None</td></tr>
+    <tr><td class="n">12</td><td>SHAP shows what the model relies on overall</td><td>Global results, agreement with permutation importance, no causation</td><td><code>shap_summary.png</code></td></tr>
+    <tr><td class="n">13</td><td>SHAP explains individual predictions</td><td>A local example, in plain language</td><td><code>local_vpn_ip.png</code></td></tr>
+    <tr><td class="n">14</td><td>MLflow tracks the experiments, and DagsHub shares them</td><td>Stores, 116 of 116 runs verified, no duplicates on a repeat, 3 models with zero prediction difference, the registry aliases</td><td>Store table</td></tr>
+    <tr><td class="n">15</td><td>The dashboard and API make the model usable and testable</td><td>Endpoints, 28-feature form, Excel workflow. Add a real screenshot</td><td>Your own screenshot</td></tr>
+    <tr><td class="n">16</td><td>Limitations and next steps</td><td>Tests, limitations, full v2 search, the deployment decision, label provenance</td><td>None</td></tr>
+  </table></div>
+</section>
+
+<section id="figures">
+  <h2>Figures</h2>
+  <p>Project files are under <code>reports/experiments/figures/</code> and <code>reports/figures/shap/hgb_slow/</code>. If a tool can't see these images, attach the files directly.</p>
+  <div class="figs">
+    <figure><img src="figures/model_comparison.png" alt="Bar chart comparing test F1 across the models." loading="lazy"><figcaption><code>model_comparison.png</code>: test scores by model</figcaption></figure>
+    <figure><img src="figures/exp_a_threshold_tradeoff.png" alt="How precision, recall and F1 change with the decision threshold." loading="lazy"><figcaption><code>exp_a_threshold_tradeoff.png</code>: threshold tuning</figcaption></figure>
+    <figure><img src="figures/exp_c_trees_vs_f1.png" alt="F1 against the number of trees." loading="lazy"><figcaption><code>exp_c_trees_vs_f1.png</code>: effect of the number of trees</figcaption></figure>
+    <figure><img src="figures/exp_d_feature_ablation.png" alt="F1 when feature groups are removed." loading="lazy"><figcaption><code>exp_d_feature_ablation.png</code>: removing features</figcaption></figure>
+    <figure><img src="figures/pr_curves.png" alt="Precision-recall curves for the main models." loading="lazy"><figcaption><code>pr_curves.png</code>: precision-recall curves</figcaption></figure>
+    <figure><img src="figures/shap_summary.png" alt="SHAP summary plot for hgb_slow, led by has_shodan and n_tcp_ports." loading="lazy"><figcaption><code>shap_summary.png</code>: SHAP summary, deployed model</figcaption></figure>
+    <figure><img src="figures/shap_bar.png" alt="Bar chart of mean absolute SHAP values for hgb_slow." loading="lazy"><figcaption><code>shap_bar.png</code>: SHAP ranking, deployed model</figcaption></figure>
+    <figure><img src="figures/local_vpn_ip.png" alt="SHAP waterfall for one VPN example, from base value minus 4.163 to 4.864." loading="lazy"><figcaption><code>local_vpn_ip.png</code>: one prediction, explained</figcaption></figure>
+  </div>
+</section>
+
+<section id="qa">
+  <h2>Likely viva questions</h2>
+  <div class="scroll"><table>
+    <tr><th>Question</th><th>Short answer</th></tr>
+    <tr><td>Why not use accuracy?</td><td>Only 1.95% of IPs are positive, so predicting "not VPN" for everything scores 98.05% with F1 of 0.</td></tr>
+    <tr><td>Why isn't the best model deployed?</td><td>Deployment needs an explicit decision. It's packaged and passes the promotion checks, but the team hasn't approved it.</td></tr>
+    <tr><td>Why not pick the run with test F1 0.7935?</td><td>That would be selecting on the test set, which makes its score optimistic.</td></tr>
+    <tr><td>Is your project full AutoML?</td><td>No. It's automated hyperparameter search on a fixed network. We chose the features, normalisation and model family.</td></tr>
+    <tr><td>Was the first search Bayesian?</td><td>It was configured for TPE, but all 20 trials were random startup trials, so in practice it was random search.</td></tr>
+    <tr><td>Does MLflow deploy your model?</td><td>No. FastAPI loads <code>models/model.joblib</code>. MLflow records results, and the run ID links the two.</td></tr>
+    <tr><td>Is there data leakage?</td><td>No IP overlaps the split, and no feature reads a label. Four population counts include test IPs, which is transductive. Counting only training IPs changed test F1 by an amount not clearly different from zero.</td></tr>
+    <tr><td>Does a high SHAP value mean a feature causes VPN use?</td><td>No. It means this model relied on that feature for this score.</td></tr>
+    <tr><td>Can I enter any IP address?</td><td>No. The model needs 28 engineered features, which require CrowdSec signals and Shodan data.</td></tr>
+  </table></div>
+</section>
+</main>
+<script>
+document.getElementById("copy").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  try {
+    await navigator.clipboard.writeText(document.getElementById("prompt-text").textContent);
+    button.textContent = "Copied";
+  } catch {
+    button.textContent = "Couldn't copy. Select the text above instead";
+  }
+});
+</script>
+</body>
+</html>

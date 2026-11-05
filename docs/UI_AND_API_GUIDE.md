@@ -28,6 +28,8 @@ An endpoint is an address that a program can send a request to, like a counter t
 | `GET /health` | Reports whether the API is running and a model is loaded |
 | `GET /model-info` | Gives the served model's identity and saved evaluation results |
 | `POST /predict` | Takes one IP's features, and returns a prediction |
+| `POST /explain/shap` | Returns SHAP values for the prediction, and names the explainer that ran |
+| `GET /explain/shap/global` | Returns the saved SHAP ranking, if it matches the served model |
 | `POST /explain` | Returns the prediction, plus how much each feature moved it |
 | `GET /docs` | Interactive documentation (Swagger UI) |
 
