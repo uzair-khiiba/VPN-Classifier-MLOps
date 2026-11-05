@@ -1,0 +1,17 @@
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#0d1117"
+secondaryBackgroundColor = "#161b22"
+textColor = "#e6edf3"
+borderColor = "#30363d"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+# Only this computer can open the dashboard. Change this if you deploy it.
+address = "127.0.0.1"

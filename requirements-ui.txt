@@ -1,0 +1,3 @@
+# Dashboard dependencies, on top of requirements.txt. The API itself does not need these.
+altair==6.3.0
+streamlit==1.66.1

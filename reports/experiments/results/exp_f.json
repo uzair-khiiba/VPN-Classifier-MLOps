@@ -1,0 +1,37 @@
+[
+  {
+    "run_name": "ludwig_automl",
+    "name": "ludwig_automl",
+    "experiment": "exp_f",
+    "verdict": "worse",
+    "change": "Ludwig neural net, best of 20 trials",
+    "params": {
+      "model": "ludwig_ecd",
+      "n_features": "28",
+      "n_train": "94885",
+      "n_trials": "20",
+      "best.trainer.learning_rate": "0.0018774113209593123",
+      "best.trainer.batch_size": "1024",
+      "best.combiner.num_fc_layers": "2",
+      "best.combiner.output_size": "64",
+      "best.combiner.dropout": "0.12500015657896732",
+      "best.label.loss.positive_class_weight": "10"
+    },
+    "metrics": {
+      "val_f1": 0.7130801687763713,
+      "val_roc_auc": 0.986695408821106,
+      "threshold": 0.821553647518158,
+      "test_f1": 0.7019641332194705,
+      "test_precision": 0.6930860033726813,
+      "test_recall": 0.7110726643598616,
+      "test_pr_auc": 0.6869300768850556,
+      "test_roc_auc": 0.9834935576632637,
+      "test_accuracy": 0.9882301362471334,
+      "test_tn": 28892,
+      "test_fp": 182,
+      "test_fn": 167,
+      "test_tp": 411,
+      "model_size_kb": 101.119140625
+    }
+  }
+]

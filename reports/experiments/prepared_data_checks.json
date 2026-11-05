@@ -1,0 +1,318 @@
+{
+  "split_fingerprint": "7a8a6674be67b514",
+  "rows": {
+    "train": 118607,
+    "test": 29652,
+    "total": 148259
+  },
+  "duplicate_ips": 0,
+  "ip_overlap": 0,
+  "class_distribution": {
+    "train": {
+      "positives": 2312,
+      "negatives": 116295,
+      "positive_rate": 0.019492947296533933
+    },
+    "test": {
+      "positives": 578,
+      "negatives": 29074,
+      "positive_rate": 0.0194927829488736
+    },
+    "total": {
+      "positives": 2890,
+      "negatives": 145369,
+      "positive_rate": 0.019492914426780163
+    }
+  },
+  "unexpected_columns": [],
+  "missing_columns": [],
+  "n_features": 28,
+  "features_with_nulls": [],
+  "features_with_negative": [],
+  "constant_features": [],
+  "id_or_label_in_features": [],
+  "n_signals_sum": 61629685,
+  "single_feature_screen": [
+    {
+      "feature": "n_tcp_ports",
+      "single_feature_auc": 0.8998,
+      "single_feature_pr_auc": 0.1007,
+      "corr_with_label": 0.0785,
+      "median_vpn": 2.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "headers_hash_shared",
+      "single_feature_auc": 0.8804,
+      "single_feature_pr_auc": 0.2678,
+      "corr_with_label": 0.341,
+      "median_vpn": 690.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "has_shodan",
+      "single_feature_auc": 0.8766,
+      "single_feature_pr_auc": 0.0779,
+      "corr_with_label": 0.2433,
+      "median_vpn": 1.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "n_active_days",
+      "single_feature_auc": 0.741,
+      "single_feature_pr_auc": 0.0461,
+      "corr_with_label": 0.1188,
+      "median_vpn": 9.0,
+      "median_other": 3.0
+    },
+    {
+      "feature": "share_http_spam",
+      "single_feature_auc": 0.7233,
+      "single_feature_pr_auc": 0.0526,
+      "corr_with_label": 0.1021,
+      "median_vpn": 0.41025641025641024,
+      "median_other": 0.26666666666666666
+    },
+    {
+      "feature": "active_hours",
+      "single_feature_auc": 0.7106,
+      "single_feature_pr_auc": 0.0388,
+      "corr_with_label": 0.1029,
+      "median_vpn": 536.3615277777777,
+      "median_other": 171.4525
+    },
+    {
+      "feature": "signals_per_day",
+      "single_feature_auc": 0.6639,
+      "single_feature_pr_auc": 0.0133,
+      "corr_with_label": -0.0061,
+      "median_vpn": 6.090909090909091,
+      "median_other": 12.0
+    },
+    {
+      "feature": "mean_gap_s",
+      "single_feature_auc": 0.6397,
+      "single_feature_pr_auc": 0.027,
+      "corr_with_label": 0.03,
+      "median_vpn": 20495.075154590137,
+      "median_other": 8628.7
+    },
+    {
+      "feature": "asn_unique_ips",
+      "single_feature_auc": 0.639,
+      "single_feature_pr_auc": 0.0145,
+      "corr_with_label": -0.0786,
+      "median_vpn": 154.0,
+      "median_other": 380.0
+    },
+    {
+      "feature": "n_watcher_as",
+      "single_feature_auc": 0.6268,
+      "single_feature_pr_auc": 0.0285,
+      "corr_with_label": 0.0203,
+      "median_vpn": 9.0,
+      "median_other": 6.0
+    },
+    {
+      "feature": "share_http_bruteforce",
+      "single_feature_auc": 0.6258,
+      "single_feature_pr_auc": 0.0154,
+      "corr_with_label": -0.0788,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "n_watchers",
+      "single_feature_auc": 0.6228,
+      "single_feature_pr_auc": 0.0281,
+      "corr_with_label": 0.0031,
+      "median_vpn": 11.0,
+      "median_other": 6.0
+    },
+    {
+      "feature": "share_http_crawl",
+      "single_feature_auc": 0.6206,
+      "single_feature_pr_auc": 0.0491,
+      "corr_with_label": 0.0617,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "n_attack_types",
+      "single_feature_auc": 0.6133,
+      "single_feature_pr_auc": 0.0473,
+      "corr_with_label": 0.0682,
+      "median_vpn": 3.0,
+      "median_other": 3.0
+    },
+    {
+      "feature": "n_watcher_countries",
+      "single_feature_auc": 0.6053,
+      "single_feature_pr_auc": 0.0265,
+      "corr_with_label": 0.0354,
+      "median_vpn": 5.0,
+      "median_other": 4.0
+    },
+    {
+      "feature": "max_signals_per_hour",
+      "single_feature_auc": 0.5973,
+      "single_feature_pr_auc": 0.0152,
+      "corr_with_label": -0.0065,
+      "median_vpn": 8.0,
+      "median_other": 10.0
+    },
+    {
+      "feature": "n_signals",
+      "single_feature_auc": 0.5633,
+      "single_feature_pr_auc": 0.0241,
+      "corr_with_label": -0.0016,
+      "median_vpn": 53.0,
+      "median_other": 36.0
+    },
+    {
+      "feature": "median_gap_s",
+      "single_feature_auc": 0.5279,
+      "single_feature_pr_auc": 0.0188,
+      "corr_with_label": -0.0095,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "no_print_with_ports",
+      "single_feature_auc": 0.5143,
+      "single_feature_pr_auc": 0.0202,
+      "corr_with_label": 0.0142,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "share_http_exploit",
+      "single_feature_auc": 0.5101,
+      "single_feature_pr_auc": 0.0186,
+      "corr_with_label": 0.0032,
+      "median_vpn": 0.2548516733802658,
+      "median_other": 0.16666666666666666
+    },
+    {
+      "feature": "ja3s_shared",
+      "single_feature_auc": 0.5098,
+      "single_feature_pr_auc": 0.0196,
+      "corr_with_label": -0.0077,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "jarm_shared",
+      "single_feature_auc": 0.509,
+      "single_feature_pr_auc": 0.0195,
+      "corr_with_label": -0.013,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "share_http_scan",
+      "single_feature_auc": 0.5082,
+      "single_feature_pr_auc": 0.0181,
+      "corr_with_label": -0.0232,
+      "median_vpn": 0.25925925925925924,
+      "median_other": 0.2
+    },
+    {
+      "feature": "share_tcp_scan",
+      "single_feature_auc": 0.5065,
+      "single_feature_pr_auc": 0.0195,
+      "corr_with_label": -0.0105,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "share_ssh_bruteforce",
+      "single_feature_auc": 0.5056,
+      "single_feature_pr_auc": 0.0192,
+      "corr_with_label": -0.0181,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "share_pop3_imap_bruteforce",
+      "single_feature_auc": 0.5032,
+      "single_feature_pr_auc": 0.0194,
+      "corr_with_label": -0.0088,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "n_udp_ports",
+      "single_feature_auc": 0.5019,
+      "single_feature_pr_auc": 0.0196,
+      "corr_with_label": -0.0004,
+      "median_vpn": 0.0,
+      "median_other": 0.0
+    },
+    {
+      "feature": "n_attacker_as",
+      "single_feature_auc": 0.5002,
+      "single_feature_pr_auc": 0.0195,
+      "corr_with_label": -0.0029,
+      "median_vpn": 1.0,
+      "median_other": 1.0
+    }
+  ],
+  "shodan_by_class_train": {
+    "has_shodan": {
+      "positive_rate_nonzero_vpn": 0.9801,
+      "positive_rate_nonzero_other": 0.2269
+    },
+    "n_tcp_ports": {
+      "positive_rate_nonzero_vpn": 0.9732,
+      "positive_rate_nonzero_other": 0.2097
+    },
+    "n_udp_ports": {
+      "positive_rate_nonzero_vpn": 0.0484,
+      "positive_rate_nonzero_other": 0.0525
+    },
+    "jarm_shared": {
+      "positive_rate_nonzero_vpn": 0.1029,
+      "positive_rate_nonzero_other": 0.0829
+    },
+    "ja3s_shared": {
+      "positive_rate_nonzero_vpn": 0.1055,
+      "positive_rate_nonzero_other": 0.0842
+    },
+    "headers_hash_shared": {
+      "positive_rate_nonzero_vpn": 0.8408,
+      "positive_rate_nonzero_other": 0.1278
+    },
+    "no_print_with_ports": {
+      "positive_rate_nonzero_vpn": 0.112,
+      "positive_rate_nonzero_other": 0.0835
+    }
+  },
+  "label_rate_by_has_shodan_train": {
+    "has_shodan=1": 0.0791,
+    "has_shodan=0": 0.0005,
+    "share_of_ips_with_shodan": 0.2416
+  },
+  "shodan_cell_values": {
+    "literal_empty_dict": 150083,
+    "parses_to_empty": 150083
+  },
+  "shared_counts_change_when_test_ips_removed": {
+    "jarm_shared": {
+      "train_rows_changed": 0.0811,
+      "median_ratio_when_nonzero": 0.6095
+    },
+    "ja3s_shared": {
+      "train_rows_changed": 0.0842,
+      "median_ratio_when_nonzero": 0.6057
+    },
+    "headers_hash_shared": {
+      "train_rows_changed": 0.1382,
+      "median_ratio_when_nonzero": 0.5992
+    }
+  },
+  "asn_unique_ips_when_test_ips_removed": {
+    "train_rows_changed": 0.9323,
+    "median_ratio_when_nonzero": 0.801
+  }
+}

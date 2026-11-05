@@ -1,0 +1,535 @@
+{
+  "model": "hgb_slow",
+  "version": "20261019-173911",
+  "threshold": 0.901464749249132,
+  "permutation": [
+    {
+      "feature": "has_shodan",
+      "f1_drop": 0.4454,
+      "f1_drop_std": 0.009,
+      "documented_f1_drop": 0.4454
+    },
+    {
+      "feature": "n_tcp_ports",
+      "f1_drop": 0.3477,
+      "f1_drop_std": 0.0054,
+      "documented_f1_drop": 0.3477
+    },
+    {
+      "feature": "headers_hash_shared",
+      "f1_drop": 0.2473,
+      "f1_drop_std": 0.0016,
+      "documented_f1_drop": 0.2473
+    },
+    {
+      "feature": "asn_unique_ips",
+      "f1_drop": 0.1101,
+      "f1_drop_std": 0.0059,
+      "documented_f1_drop": 0.1101
+    },
+    {
+      "feature": "share_http_scan",
+      "f1_drop": 0.0391,
+      "f1_drop_std": 0.0017,
+      "documented_f1_drop": 0.0391
+    },
+    {
+      "feature": "jarm_shared",
+      "f1_drop": 0.0363,
+      "f1_drop_std": 0.0021,
+      "documented_f1_drop": 0.0363
+    },
+    {
+      "feature": "n_attack_types",
+      "f1_drop": 0.0257,
+      "f1_drop_std": 0.002,
+      "documented_f1_drop": 0.0257
+    },
+    {
+      "feature": "share_http_bruteforce",
+      "f1_drop": 0.0251,
+      "f1_drop_std": 0.0032,
+      "documented_f1_drop": 0.0251
+    },
+    {
+      "feature": "share_http_spam",
+      "f1_drop": 0.0197,
+      "f1_drop_std": 0.0033,
+      "documented_f1_drop": 0.0197
+    },
+    {
+      "feature": "share_http_exploit",
+      "f1_drop": 0.0181,
+      "f1_drop_std": 0.0031,
+      "documented_f1_drop": 0.0181
+    },
+    {
+      "feature": "ja3s_shared",
+      "f1_drop": 0.0157,
+      "f1_drop_std": 0.0031,
+      "documented_f1_drop": 0.0157
+    },
+    {
+      "feature": "signals_per_day",
+      "f1_drop": 0.0148,
+      "f1_drop_std": 0.0029,
+      "documented_f1_drop": 0.0148
+    },
+    {
+      "feature": "n_watcher_countries",
+      "f1_drop": 0.0121,
+      "f1_drop_std": 0.0068,
+      "documented_f1_drop": 0.0121
+    },
+    {
+      "feature": "n_active_days",
+      "f1_drop": 0.0112,
+      "f1_drop_std": 0.0025,
+      "documented_f1_drop": 0.0112
+    },
+    {
+      "feature": "max_signals_per_hour",
+      "f1_drop": 0.0095,
+      "f1_drop_std": 0.003,
+      "documented_f1_drop": 0.0095
+    },
+    {
+      "feature": "n_watcher_as",
+      "f1_drop": 0.0073,
+      "f1_drop_std": 0.0018,
+      "documented_f1_drop": 0.0073
+    },
+    {
+      "feature": "share_http_crawl",
+      "f1_drop": 0.0056,
+      "f1_drop_std": 0.0007,
+      "documented_f1_drop": 0.0056
+    },
+    {
+      "feature": "n_udp_ports",
+      "f1_drop": 0.0055,
+      "f1_drop_std": 0.0019,
+      "documented_f1_drop": 0.0055
+    },
+    {
+      "feature": "mean_gap_s",
+      "f1_drop": 0.0034,
+      "f1_drop_std": 0.0017,
+      "documented_f1_drop": 0.0034
+    },
+    {
+      "feature": "n_watchers",
+      "f1_drop": 0.0034,
+      "f1_drop_std": 0.001,
+      "documented_f1_drop": 0.0034
+    },
+    {
+      "feature": "share_pop3_imap_bruteforce",
+      "f1_drop": 0.0014,
+      "f1_drop_std": 0.0005,
+      "documented_f1_drop": 0.0014
+    },
+    {
+      "feature": "no_print_with_ports",
+      "f1_drop": 0.0013,
+      "f1_drop_std": 0.0,
+      "documented_f1_drop": 0.0013
+    },
+    {
+      "feature": "share_tcp_scan",
+      "f1_drop": 0.001,
+      "f1_drop_std": 0.001,
+      "documented_f1_drop": 0.001
+    },
+    {
+      "feature": "share_ssh_bruteforce",
+      "f1_drop": 0.0008,
+      "f1_drop_std": 0.0009,
+      "documented_f1_drop": 0.0008
+    },
+    {
+      "feature": "n_attacker_as",
+      "f1_drop": 0.0,
+      "f1_drop_std": 0.0,
+      "documented_f1_drop": 0.0
+    },
+    {
+      "feature": "median_gap_s",
+      "f1_drop": -0.0001,
+      "f1_drop_std": 0.0023,
+      "documented_f1_drop": -0.0001
+    },
+    {
+      "feature": "active_hours",
+      "f1_drop": -0.0017,
+      "f1_drop_std": 0.0017,
+      "documented_f1_drop": -0.0017
+    },
+    {
+      "feature": "n_signals",
+      "f1_drop": -0.0022,
+      "f1_drop_std": 0.0026,
+      "documented_f1_drop": -0.0022
+    }
+  ],
+  "groups": [
+    {
+      "group": "All Shodan features",
+      "n_features": 7,
+      "f1_drop": 0.6663980170289632,
+      "f1_drop_std": 0.015946686305891657
+    },
+    {
+      "group": "Attack mix (shares)",
+      "n_features": 8,
+      "f1_drop": 0.13125413329798544,
+      "f1_drop_std": 0.004980807461200077
+    },
+    {
+      "group": "ASN crowding",
+      "n_features": 1,
+      "f1_drop": 0.12361875636763378,
+      "f1_drop_std": 0.002873710444118026
+    },
+    {
+      "group": "Timing",
+      "n_features": 6,
+      "f1_drop": 0.05180523664739152,
+      "f1_drop_std": 0.004592706990278366
+    },
+    {
+      "group": "Breadth",
+      "n_features": 6,
+      "f1_drop": 0.046831581193780926,
+      "f1_drop_std": 0.004646751058113057
+    }
+  ],
+  "outcome_profile": {
+    "TP": {
+      "n": 464,
+      "has_shodan_rate": 1.0,
+      "median_n_tcp_ports": 3.0,
+      "median_headers_hash_shared": 690.0,
+      "median_asn_unique_ips": 218.0,
+      "median_n_active_days": 12.0
+    },
+    "FP": {
+      "n": 169,
+      "has_shodan_rate": 1.0,
+      "median_n_tcp_ports": 3.0,
+      "median_headers_hash_shared": 829.0,
+      "median_asn_unique_ips": 135.0,
+      "median_n_active_days": 8.0
+    },
+    "FN": {
+      "n": 114,
+      "has_shodan_rate": 0.8859649122807017,
+      "median_n_tcp_ports": 1.0,
+      "median_headers_hash_shared": 10.5,
+      "median_asn_unique_ips": 97.0,
+      "median_n_active_days": 8.0
+    },
+    "TN": {
+      "n": 28905,
+      "has_shodan_rate": 0.22200311364815775,
+      "median_n_tcp_ports": 0.0,
+      "median_headers_hash_shared": 0.0,
+      "median_asn_unique_ips": 380.0,
+      "median_n_active_days": 3.0
+    }
+  },
+  "cases": {
+    "TP": {
+      "true_label": 1,
+      "is_vpn_proxy": true,
+      "probability": 0.9927,
+      "threshold": 0.9015,
+      "model_version": "hgb_slow-20261019-173911",
+      "method": "single-feature replacement with training median",
+      "contributions": [
+        {
+          "feature": "has_shodan",
+          "value": 1.0,
+          "reference": 0.0,
+          "effect": 0.6665
+        },
+        {
+          "feature": "n_tcp_ports",
+          "value": 2.0,
+          "reference": 0.0,
+          "effect": 0.1438
+        },
+        {
+          "feature": "headers_hash_shared",
+          "value": 690.0,
+          "reference": 0.0,
+          "effect": 0.0806
+        },
+        {
+          "feature": "share_http_spam",
+          "value": 0.45714285714285713,
+          "reference": 0.26666666666666666,
+          "effect": 0.011
+        },
+        {
+          "feature": "signals_per_day",
+          "value": 3.5,
+          "reference": 12.0,
+          "effect": 0.0004
+        }
+      ]
+    },
+    "FP": {
+      "true_label": 0,
+      "is_vpn_proxy": true,
+      "probability": 0.9927,
+      "threshold": 0.9015,
+      "model_version": "hgb_slow-20261019-173911",
+      "method": "single-feature replacement with training median",
+      "contributions": [
+        {
+          "feature": "has_shodan",
+          "value": 1.0,
+          "reference": 0.0,
+          "effect": 0.7173
+        },
+        {
+          "feature": "n_tcp_ports",
+          "value": 2.0,
+          "reference": 0.0,
+          "effect": 0.1438
+        },
+        {
+          "feature": "headers_hash_shared",
+          "value": 690.0,
+          "reference": 0.0,
+          "effect": 0.0708
+        },
+        {
+          "feature": "share_http_spam",
+          "value": 0.4074074074074074,
+          "reference": 0.26666666666666666,
+          "effect": 0.0098
+        },
+        {
+          "feature": "share_http_exploit",
+          "value": 0.5555555555555556,
+          "reference": 0.17647058823529413,
+          "effect": 0.0002
+        }
+      ]
+    },
+    "FN": {
+      "true_label": 1,
+      "is_vpn_proxy": false,
+      "probability": 0.0052,
+      "threshold": 0.9015,
+      "model_version": "hgb_slow-20261019-173911",
+      "method": "single-feature replacement with training median",
+      "contributions": [
+        {
+          "feature": "share_http_scan",
+          "value": 0.6818181818181818,
+          "reference": 0.21082089552238806,
+          "effect": -0.0069
+        },
+        {
+          "feature": "n_watcher_countries",
+          "value": 2.0,
+          "reference": 4.0,
+          "effect": -0.0005
+        },
+        {
+          "feature": "n_signals",
+          "value": 22.0,
+          "reference": 37.0,
+          "effect": 0.0
+        },
+        {
+          "feature": "n_attack_types",
+          "value": 3.0,
+          "reference": 3.0,
+          "effect": 0.0
+        },
+        {
+          "feature": "n_watchers",
+          "value": 3.0,
+          "reference": 6.0,
+          "effect": 0.0
+        }
+      ]
+    },
+    "TN": {
+      "true_label": 0,
+      "is_vpn_proxy": false,
+      "probability": 0.0033,
+      "threshold": 0.9015,
+      "model_version": "hgb_slow-20261019-173911",
+      "method": "single-feature replacement with training median",
+      "contributions": [
+        {
+          "feature": "headers_hash_shared",
+          "value": 771.0,
+          "reference": 0.0,
+          "effect": -0.0604
+        },
+        {
+          "feature": "share_http_bruteforce",
+          "value": 0.21311475409836064,
+          "reference": 0.0,
+          "effect": -0.0317
+        },
+        {
+          "feature": "has_shodan",
+          "value": 1.0,
+          "reference": 0.0,
+          "effect": -0.0177
+        },
+        {
+          "feature": "share_http_scan",
+          "value": 0.0,
+          "reference": 0.21082089552238806,
+          "effect": -0.0102
+        },
+        {
+          "feature": "n_udp_ports",
+          "value": 1.0,
+          "reference": 0.0,
+          "effect": -0.0096
+        }
+      ]
+    }
+  },
+  "what_if": {
+    "anchor_probability": 0.9872519518349382,
+    "anchor_values": {
+      "has_shodan": 1.0,
+      "n_tcp_ports": 4.0,
+      "headers_hash_shared": 1986.0,
+      "asn_unique_ips": 242.0,
+      "n_active_days": 12.0
+    },
+    "sweeps": {
+      "has_shodan": [
+        {
+          "value": 0,
+          "probability": 0.2388,
+          "is_vpn_proxy": false
+        },
+        {
+          "value": 1,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        }
+      ],
+      "n_tcp_ports": [
+        {
+          "value": 0,
+          "probability": 0.7527,
+          "is_vpn_proxy": false
+        },
+        {
+          "value": 1,
+          "probability": 0.9868,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 2,
+          "probability": 0.9868,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 5,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 20,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        }
+      ],
+      "headers_hash_shared": [
+        {
+          "value": 0,
+          "probability": 0.9093,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 10,
+          "probability": 0.9182,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 100,
+          "probability": 0.8279,
+          "is_vpn_proxy": false
+        },
+        {
+          "value": 690,
+          "probability": 0.9928,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 5000,
+          "probability": 0.9715,
+          "is_vpn_proxy": true
+        }
+      ],
+      "asn_unique_ips": [
+        {
+          "value": 1,
+          "probability": 0.9789,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 50,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 154,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 1000,
+          "probability": 0.848,
+          "is_vpn_proxy": false
+        },
+        {
+          "value": 5000,
+          "probability": 0.6278,
+          "is_vpn_proxy": false
+        }
+      ],
+      "n_active_days": [
+        {
+          "value": 1,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 3,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 9,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 20,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        },
+        {
+          "value": 30,
+          "probability": 0.9873,
+          "is_vpn_proxy": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "search_running_time": "31min 56s",
+  "best_model_size_kb": 101.119140625,
+  "n_trials": 20,
+  "best_val_roc_auc": 0.986695408821106,
+  "worst_val_roc_auc": 0.9581327438354492,
+  "n_trials_with_task_failures": 2,
+  "vs_baseline": {
+    "diff": -0.06454883399070246,
+    "diff_low": -0.0885767465804565,
+    "diff_high": -0.04055121876790913,
+    "a_low": 0.6711924662196272,
+    "a_high": 0.7294304132981179
+  }
+}

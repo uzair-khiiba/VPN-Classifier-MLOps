@@ -1,0 +1,14 @@
+{
+  "tracking_uri": "sqlite:///C:\\Users\\DANISH LAPTOP\\Desktop\\mlops\\VPN-Classifier-MLOps\\reports\\experiments\\artifacts\\zainab_mlflow.db",
+  "experiments_visible": [
+    "zainab_ludwig_check",
+    "zainab_experiments",
+    "Default"
+  ],
+  "experiment": "zainab_experiments",
+  "runs_in_mlflow": 89,
+  "runs_expected": 89,
+  "metric_values_compared": 1944,
+  "summary_artifacts": 16,
+  "problems": []
+}

@@ -1,0 +1,44 @@
+{
+  "overall": {
+    "selected_run": "exp_c_trees_400_no_early_stop",
+    "best_cv_f1_in_pool": 0.7913153456998313,
+    "near_best": [
+      "exp_b_oversample_1to1",
+      "exp_c_trees_400_no_early_stop",
+      "exp_c2_unweighted_trees_400",
+      "exp_c2_oversample_1to1_trees_400",
+      "exp_c2_oversample_1to1_trees_600"
+    ],
+    "gain_vs_baseline": 0.019095539348643054,
+    "required_gain": 0.003,
+    "rule": "highest 5-fold CV F1, must beat baseline by margin, simplest within margin of best"
+  },
+  "exp_a": {
+    "selected": "tuned_threshold",
+    "threshold": 0.901464749249132,
+    "rule": "threshold with the highest out-of-fold F1"
+  },
+  "exp_b": {
+    "selected": "oversample_1to1",
+    "best_by_cv": "oversample_1to1",
+    "gain": 0.021924186400415047,
+    "required_gain": 0.003,
+    "rule": "best CV F1, must beat the baseline by the margin"
+  },
+  "exp_c": {
+    "best_by_cv": "trees_400_no_early_stop",
+    "best_cv_f1": 0.7884866986480593,
+    "baseline_cv_f1": 0.7693911592994163,
+    "gain": 0.019095539348643054,
+    "required_gain": 0.003,
+    "selected": "trees_400_no_early_stop"
+  },
+  "exp_d": {
+    "selected": null,
+    "rule": "analysis only: the feature sets are compared, not selected"
+  },
+  "exp_e": {
+    "selected": "hgb_slow",
+    "rule": "best CV F1"
+  }
+}

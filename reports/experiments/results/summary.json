@@ -1,0 +1,37 @@
+[
+  {
+    "run_name": "summary_selected_model_and_figures",
+    "experiment": "summary",
+    "change": "selected model, figures and comparison tables",
+    "params": {
+      "selected_run": "exp_c_trees_400_no_early_stop"
+    },
+    "metrics": {
+      "cv_f1": 0.7884866986480593,
+      "threshold": 0.827977283051578,
+      "test_f1": 0.7875647668393783,
+      "test_precision": 0.7862068965517242,
+      "test_recall": 0.7889273356401384,
+      "test_pr_auc": 0.8449787702386097,
+      "model_size_kb": 1244.3
+    },
+    "artifacts": [
+      "reports/experiments/figures/exp_a_threshold_tradeoff.png",
+      "reports/experiments/figures/exp_b_imbalance.png",
+      "reports/experiments/figures/exp_c_hyperparameters.png",
+      "reports/experiments/figures/exp_c_trees_vs_f1.png",
+      "reports/experiments/figures/exp_d_feature_ablation.png",
+      "reports/experiments/figures/group_permutation_importance.png",
+      "reports/experiments/figures/model_comparison.png",
+      "reports/experiments/figures/permutation_importance.png",
+      "reports/experiments/figures/pr_curves.png",
+      "reports/experiments/figures/what_if_one_feature.png",
+      "reports/experiments/comparison_table.csv",
+      "reports/experiments/comparison_tables.md",
+      "reports/experiments/results/selections.json",
+      "reports/experiments/results/test_comparison.json",
+      "reports/experiments/results/selection_audit.json",
+      "reports/experiments/artifacts/selected_models/exp_c_trees_400_no_early_stop.joblib"
+    ]
+  }
+]
