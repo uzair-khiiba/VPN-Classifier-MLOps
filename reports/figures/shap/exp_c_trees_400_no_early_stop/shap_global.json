@@ -1,0 +1,158 @@
+{
+  "model": "exp_c_trees_400_no_early_stop-experiment-5887057bd5f4",
+  "explainer": "TreeExplainer",
+  "method": "shap.TreeExplainer, tree_path_dependent, log-odds of class 1 (VPN/proxy)",
+  "positive_class": 1,
+  "units": "log-odds of VPN/proxy",
+  "base_value": -7.8914529196858485,
+  "rows_explained": 29652,
+  "data": "held-out test set, labels not used",
+  "additivity_checked": true,
+  "shap_version": "0.54.1",
+  "scikit_learn_version": "1.9.1",
+  "generated_at": "2026-11-05T10:10:25+00:00",
+  "limitation": "SHAP values show how this model reached its score. They describe the model, not the real world, so they don't show that a feature causes an IP to be a VPN or proxy.",
+  "spearman_with_permutation_importance": null,
+  "ranking": [
+    {
+      "feature": "has_shodan",
+      "mean_abs_shap": 0.764125,
+      "mean_shap": 0.002536
+    },
+    {
+      "feature": "share_http_scan",
+      "mean_abs_shap": 0.58389,
+      "mean_shap": -0.072012
+    },
+    {
+      "feature": "n_tcp_ports",
+      "mean_abs_shap": 0.575961,
+      "mean_shap": -0.032312
+    },
+    {
+      "feature": "signals_per_day",
+      "mean_abs_shap": 0.488623,
+      "mean_shap": -0.019655
+    },
+    {
+      "feature": "asn_unique_ips",
+      "mean_abs_shap": 0.438123,
+      "mean_shap": -0.015619
+    },
+    {
+      "feature": "share_http_bruteforce",
+      "mean_abs_shap": 0.379973,
+      "mean_shap": -0.014278
+    },
+    {
+      "feature": "share_http_exploit",
+      "mean_abs_shap": 0.227482,
+      "mean_shap": 0.027688
+    },
+    {
+      "feature": "n_watcher_as",
+      "mean_abs_shap": 0.197882,
+      "mean_shap": -0.018122
+    },
+    {
+      "feature": "headers_hash_shared",
+      "mean_abs_shap": 0.185778,
+      "mean_shap": -0.028984
+    },
+    {
+      "feature": "active_hours",
+      "mean_abs_shap": 0.178535,
+      "mean_shap": 0.012709
+    },
+    {
+      "feature": "max_signals_per_hour",
+      "mean_abs_shap": 0.175411,
+      "mean_shap": 0.013636
+    },
+    {
+      "feature": "mean_gap_s",
+      "mean_abs_shap": 0.153622,
+      "mean_shap": 0.007948
+    },
+    {
+      "feature": "share_http_spam",
+      "mean_abs_shap": 0.144167,
+      "mean_shap": 0.018234
+    },
+    {
+      "feature": "jarm_shared",
+      "mean_abs_shap": 0.130447,
+      "mean_shap": 0.034103
+    },
+    {
+      "feature": "n_active_days",
+      "mean_abs_shap": 0.121835,
+      "mean_shap": -0.011398
+    },
+    {
+      "feature": "n_watcher_countries",
+      "mean_abs_shap": 0.105529,
+      "mean_shap": 0.018763
+    },
+    {
+      "feature": "n_signals",
+      "mean_abs_shap": 0.105427,
+      "mean_shap": 0.025183
+    },
+    {
+      "feature": "n_watchers",
+      "mean_abs_shap": 0.088903,
+      "mean_shap": 0.017443
+    },
+    {
+      "feature": "median_gap_s",
+      "mean_abs_shap": 0.083027,
+      "mean_shap": 0.007519
+    },
+    {
+      "feature": "ja3s_shared",
+      "mean_abs_shap": 0.077449,
+      "mean_shap": 0.009166
+    },
+    {
+      "feature": "n_attack_types",
+      "mean_abs_shap": 0.070701,
+      "mean_shap": 0.00837
+    },
+    {
+      "feature": "share_http_crawl",
+      "mean_abs_shap": 0.046958,
+      "mean_shap": -0.004661
+    },
+    {
+      "feature": "share_tcp_scan",
+      "mean_abs_shap": 0.03943,
+      "mean_shap": -0.000404
+    },
+    {
+      "feature": "share_ssh_bruteforce",
+      "mean_abs_shap": 0.034331,
+      "mean_shap": 0.002906
+    },
+    {
+      "feature": "no_print_with_ports",
+      "mean_abs_shap": 0.022078,
+      "mean_shap": 0.000935
+    },
+    {
+      "feature": "n_udp_ports",
+      "mean_abs_shap": 0.020019,
+      "mean_shap": 0.003846
+    },
+    {
+      "feature": "share_pop3_imap_bruteforce",
+      "mean_abs_shap": 0.006286,
+      "mean_shap": 0.003418
+    },
+    {
+      "feature": "n_attacker_as",
+      "mean_abs_shap": 0.0,
+      "mean_shap": 0.0
+    }
+  ]
+}

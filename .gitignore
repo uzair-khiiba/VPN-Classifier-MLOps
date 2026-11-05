@@ -37,5 +37,21 @@ Doc_Final.docx
 crowdsec-vpn-classification-2nd-place.ipynb
 *.log
 
-# Local settings (see .env.example)
+# Proposal originals at the project root (copies are in docs/proposal/)
+/MLOps Course Project Proposal.docx
+/VPN_Proxy_Classification_MLOps_Proposal.pptx
+
+# Local secrets (e.g. MLflow/DagsHub credentials)
 .env
+
+# Generated from the real data: regenerate with `python -m src.export_features`
+data/exports/
+# Safety copies, run outputs and candidate models that are not served
+backups/
+ludwig_results_v2/
+ludwig_results_smoke/
+models/candidates/
+models/archive/
+data/processed-inductive/
+# Holds this machine's folder paths; regenerate with `python -m experiments.log_models`
+reports/experiments/results/model_logging_local.json

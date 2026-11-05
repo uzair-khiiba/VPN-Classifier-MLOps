@@ -242,3 +242,15 @@ def test_form_rules_accept_every_real_ip():
 
     rows = pd.read_parquet(IP_LOOKUP_PATH)[FEATURES].to_dict("records")
     assert not [row for row in rows if consistency_warnings(row)]
+
+
+def test_pasted_rows_are_parsed_in_order_or_explained():
+    from ui.features import parse_pasted_row
+
+    names = ["a", "b", "c"]
+    assert parse_pasted_row("1\t2.5\t3", names) == {"a": 1.0, "b": 2.5, "c": 3.0}
+    assert parse_pasted_row('{"c": 3, "a": 1, "b": 2}', names) == {"a": 1.0, "b": 2.0, "c": 3.0}
+    for text, message in (("", "Nothing"), ("1 2", "Expected 3"), ("1 x 3", "must be a number"),
+                          ('{"a": 1}', "Missing"), ("{broken", "couldn't be read")):
+        with pytest.raises(ValueError, match=message):
+            parse_pasted_row(text, names)

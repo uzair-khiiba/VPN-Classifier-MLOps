@@ -2,7 +2,7 @@
 name = "vpn-proxy-classifier"
 version = "1.0.0"
 description = "VPN/proxy IP classification on CrowdSec signals, served with FastAPI"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11,<3.13"
 
 [tool.ruff]
 line-length = 120

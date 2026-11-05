@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 from ludwig.api import LudwigModel
 
-from src.automl_ludwig import OUTPUT_DIR, positive_proba
+from src.automl_ludwig import FIRST_SEARCH_DIR as OUTPUT_DIR
+from src.automl_ludwig import positive_proba
 from src.config import PROCESSED_DIR, ROOT, TARGET
 from src.features import FEATURES
 
