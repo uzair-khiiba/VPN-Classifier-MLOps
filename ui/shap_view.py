@@ -4,11 +4,12 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from ui import theme
 from ui.features import label_for
 from ui.state import format_metric
 
 TOWARD, AWAY = "Pushes toward VPN/proxy", "Pushes away from VPN/proxy"
-COLORS = {TOWARD: "#d95926", AWAY: "#3987e5"}
+COLORS = {TOWARD: theme.TOWARD_VPN, AWAY: theme.AWAY_FROM_VPN}
 CAUSATION_NOTE = ("**This describes the model, not the real world.** A feature with a large push is one this model "
                   "relied on for this score. It doesn't show that the feature causes an IP to be a VPN or proxy.")
 
@@ -30,9 +31,9 @@ def _chart(frame: pd.DataFrame) -> alt.LayerChart:
                         legend=alt.Legend(title=None, orient="top", labelLimit=0)),
         tooltip=[alt.Tooltip("name:N", title="Feature"), alt.Tooltip("value:Q", title="This IP"),
                  alt.Tooltip("shap_value:Q", title="SHAP value", format="+.3f")])
-    right = base.transform_filter("datum.shap_value >= 0").mark_text(align="left", dx=4, color="#e6edf3").encode(
+    right = base.transform_filter("datum.shap_value >= 0").mark_text(align="left", dx=5, color=theme.INK).encode(
         text=alt.Text("shap_value:Q", format="+.2f"))
-    left = base.transform_filter("datum.shap_value < 0").mark_text(align="right", dx=-4, color="#e6edf3").encode(
+    left = base.transform_filter("datum.shap_value < 0").mark_text(align="right", dx=-5, color=theme.INK).encode(
         text=alt.Text("shap_value:Q", format="+.2f"))
     return (bars + right + left).properties(height=alt.Step(28))
 
@@ -53,7 +54,7 @@ def render_local_shap(explanation: dict, top_k: int = 8) -> None:
                 f"{format_metric(explanation['threshold'], 4)} or above.")
     st.markdown(f"- Pushing **toward** VPN/proxy most: {_sentence(frame, TOWARD)}\n"
                 f"- Pushing **away** from VPN/proxy most: {_sentence(frame, AWAY)}")
-    st.altair_chart(_chart(frame.head(top_k)), width="stretch")
+    st.altair_chart(theme.style(_chart(frame.head(top_k))), width="stretch", theme=None)
     st.info(CAUSATION_NOTE, icon=":material/info:")
     table = frame.head(top_k)[["name", "feature", "value", "shap_value", "side"]].rename(
         columns={"name": "Feature", "feature": "API field", "value": "This IP", "shap_value": "SHAP value",

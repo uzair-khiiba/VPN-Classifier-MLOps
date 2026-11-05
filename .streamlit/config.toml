@@ -1,10 +1,21 @@
+# Light, high-contrast theme for presenting on a projector. The same values are in ui/theme.py,
+# which the charts use: keep the two in step.
 [theme]
-base = "dark"
-primaryColor = "#3987e5"
-backgroundColor = "#0d1117"
-secondaryBackgroundColor = "#161b22"
-textColor = "#e6edf3"
-borderColor = "#30363d"
+base = "light"
+primaryColor = "#256abf"            # buttons and links: 5.3:1 on white
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0efec" # sidebar, cards and inputs: visibly distinct from white on a projector
+textColor = "#0b0b0b"
+linkColor = "#256abf"
+borderColor = "#c3c2b7"              # strong enough to survive a washed-out projector
+showWidgetBorder = true
+showSidebarBorder = true
+baseFontSize = 17                   # one step up from 16, for reading across a room
+headingFontWeights = [700, 650, 600]
+baseRadius = "0.5rem"
+dataframeHeaderBackgroundColor = "#f0efec"
+dataframeHeaderTextColor = "#0b0b0b"
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 
 [browser]
 gatherUsageStats = false

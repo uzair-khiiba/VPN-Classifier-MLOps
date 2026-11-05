@@ -9,7 +9,7 @@ Run every command from the project folder, in Command Prompt (`cmd`). `make` isn
 | `.venv` | 3.12 | API, dashboard, training, experiments, SHAP, export, MLflow, DagsHub | `requirements.txt`, `requirements-ui.txt` |
 | `.venv-ludwig` | 3.11 | Only the Ludwig search and loading its model | `requirements-ludwig.txt` |
 
-They're separate because Ludwig brings in PyTorch and Ray, and Ludwig 0.11 needs Python 3.11.
+Ludwig can't share the main environment: Ludwig 0.11.0 requires `rich` older than 12.5, while the `dagshub` package used for publishing needs `rich` 13.1 or newer. It also adds PyTorch and Ray (about 2 GB), which the API and dashboard don't need. The Ludwig environment uses Python 3.11, where the search has been run.
 
 ```bat
 :: Main environment
@@ -79,6 +79,27 @@ Plots go to `reports\figures\shap\<model name>\`. The deployed model takes about
 
 SHAP values describe how the model reached a score. They don't show that a feature causes an IP to be a VPN or proxy.
 
+## Train the model, log it to MLflow, and test
+
+This is what `make run` does on Linux and macOS. In Command Prompt, from the project folder:
+
+```bat
+:: 1. Prepare the data (only needed once, or when data\raw changes): ~3 min
+.venv\Scripts\python -m src.prepare_data
+
+:: 2. Train the 5 models and log each run to mlflow.db: ~11 min.
+::    The two folders are set only for this one command, so the deployed models\model.joblib is never overwritten
+cmd /C "set "MODELS_DIR=models\runs" && set "MODEL_PATH=models\runs\latest.joblib" && .venv\Scripts\python -m src.train"
+
+:: 3. Run the tests
+.venv\Scripts\python -m pytest
+
+:: 4. See the training runs at http://127.0.0.1:5000
+.venv\Scripts\python -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+Without the dataset, add `--sample` to step 1 and set `PROCESSED_DIR=data\processed-sample` and `MODELS_DIR=models\sample` in step 2.
+
 ## MLflow
 
 ### View the local history
@@ -94,7 +115,7 @@ Open http://127.0.0.1:5000, and press `Ctrl+C` to stop it. Choose the store you 
 | `reports/experiments/artifacts/zainab_mlflow.db` | `zainab_experiments` (89 runs), `zainab_ludwig_check` (1) |
 | `reports/experiments/artifacts/baseline/baseline_repro_mlflow.db` | `zainab_baseline_repro_local` (5) |
 | `reports/experiments/artifacts/model_packages_mlflow.db` | `zainab_ludwig_trials` (21: 1 parent + 20 trials), `zainab_model_packages` (3 logged models) |
-| `mlflow.db` | Doesn't exist until you run `src.train` |
+| `mlflow.db` | `vpn-proxy-classification`: the training runs from `src.train` (`make run`). Doesn't exist until you train |
 
 Useful filters: `tags.experiment_track = 'exp_c'`, `metrics.cv_f1 > 0.78`, `attributes.run_name = 'ludwig_automl'`. Choose models by `cv_f1`, not `test_f1`.
 

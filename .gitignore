@@ -22,6 +22,7 @@ ludwig_results/
 .lock_preprocessing
 models/*.joblib
 models/sample/
+models/runs/
 !models/.gitkeep
 # The selected model (~300 KB) is committed so a fresh clone can serve the API without the dataset
 !models/model.joblib

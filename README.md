@@ -17,12 +17,15 @@ flowchart LR
     C --> L["src/automl_ludwig.py<br/>Ludwig search on one ECD network<br/>separate Python 3.11 environment"]
     C --> R["experiments/<br/>A to E, on the same split"]
     C --> XL["src/export_features.py<br/>Excel, CSV, Parquet"]
+    A --> OF["src/online_features.py<br/>models/ip_lookup.parquet (test IPs)<br/>models/feature_reference.json (ASN + fingerprint counts)"]
+    C --> OF
+    OF --> F
     E --> X["src/explain.py + src/shap_report.py<br/>permutation importance, SHAP plots"]
     D --> E["models/model.joblib<br/>deployed model + F1 threshold"]
     R --> CA["models/candidates/<br/>best experimental model, not deployed"]
     CA -->|"experiments/promote_model.py<br/>only with explicit approval"| E
-    E --> F["src/app.py (FastAPI)<br/>/predict · /explain · /explain/shap · /health · /model-info"]
-    U["ui/streamlit_app.py (Streamlit)<br/>28-feature form and dashboard"] -->|HTTP| F
+    E --> F["src/app.py (FastAPI)<br/>/predict · /predict/ip/{id} · /predict/signals<br/>/explain · /explain/shap · /health · /model-info"]
+    U["ui/streamlit_app.py (Streamlit)<br/>score by IP ID, from attack events, or from 28 features"] -->|HTTP| F
     XL -.->|"load a real record"| U
     D -.-> M[("MLflow<br/>local SQLite or DagsHub")]
     L -.-> M
@@ -36,7 +39,10 @@ Plain-text version:
 ```
 data/raw/train.parq ─► prepare_data.py ─► data/processed/ ─► train.py ─► models/model.joblib ─► app.py (FastAPI)
   (61.6M signals)      validate + per-IP    (148,259 IPs,     5 models,     (best model +         /predict /explain
-                       features + split      80/20 split)     MLflow        F1 threshold)          /health /docs
+                       features + split      80/20 split)     MLflow        F1 threshold)          /predict/ip /predict/signals
+                                                  │                                                ▲  /explain/shap /health /docs
+                                                  └─► online_features.py ─► models/ip_lookup.parquet ┘
+                                                      (lookup data)         models/feature_reference.json
 ```
 
 ## Quick start
@@ -46,32 +52,27 @@ data/raw/train.parq ─► prepare_data.py ─► data/processed/ ─► train.p
 ```bash
 git clone https://github.com/uzair-khiiba/VPN-Classifier-MLOps.git
 cd VPN-Classifier-MLOps
-make setup        # .venv with Python 3.12 and pinned dependencies
-make serve        # API on http://127.0.0.1:8000, interactive docs at /docs
+make setup        # .venv with Python 3.12 and the pinned dependencies
+make run          # prepare the data if needed -> train all models -> log them to MLflow -> run pytest
+make mlflow       # see the training runs at http://127.0.0.1:5000
+make serve        # serve the deployed model: API on http://127.0.0.1:8000, interactive docs at /docs
 ```
 
-The trained model (`models/model.joblib`, ~300 KB) is committed, so the API runs straight after cloning.
+Run `make` on its own to list every command.
 
-To rebuild the model from scratch:
+**`make run` is the whole pipeline in one command.** It prepares the data if `data/processed/` doesn't exist yet, then trains the five candidate models with 5-fold cross-validation, scores each on the held-out test set, and logs every run to MLflow (`mlflow.db`) with its parameters and metrics. It saves the best model, versioned (`models/runs/vpn-clf_<model>_<timestamp>.joblib`), then runs the full pytest suite. On the real data it takes about 3 minutes for preparation and 11 for training on 4 CPU cores.
 
-```bash
-# Full data (see "Dataset" for the download): ~3 min prep + ~11 min training on 4 CPU cores
-make data         # validate data/raw/train.parq, build per-IP features, split
-make train        # train 5 candidates, log them to MLflow, save the best
-make explain      # global explainability: permutation importance on the test set (~30 s)
-make mlflow       # MLflow UI on http://127.0.0.1:5000, showing the experiment history
+Training never overwrites the deployed model, `models/model.joblib`; the API keeps serving it. A new model is deployed only through `python -m experiments.promote_model` (see "Changing the deployed model" below). The deployed model and the lookup data (`models/ip_lookup.parquet`, `models/feature_reference.json`) are committed, so `make serve` works straight after cloning, including lookup by IP ID and scoring from attack events.
 
-# Or, without the dataset: the same pipeline on the committed synthetic sample
-make data SAMPLE=1 && make train SAMPLE=1
-```
+**Without the dataset,** run the same pipeline on the committed synthetic sample: `make run SAMPLE=1`. Its outputs go to `data/processed-sample/` and `models/sample/`, and its runs to a separate MLflow experiment, `vpn-proxy-classification-sample`.
 
-With `SAMPLE=1`, the outputs go to `data/processed-sample/` and `models/sample/`, so the committed model trained on the real data is never overwritten. MLflow logs these runs to a separate experiment, `vpn-proxy-classification-sample`.
-
-Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.train` and `uvicorn src.app:app`.
+The steps can also be run one at a time: `make data`, `make train`, `make test`. Other commands: `make lookup` rebuilds the API's lookup data, `make explain` computes permutation importance, and `make mlflow-experiments` opens the experiment track's 89 runs. Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.train`, `python -m pytest` and `uvicorn src.app:app`.
 
 ## Dashboard
 
-A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you enter an IP's 28 features by hand or load a real record, get a prediction, see why the model made it, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
+A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you score an IP (by its ID, from its attack events, or from its 28 features), see why the model made the prediction, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
+
+It uses a light, high-contrast theme made for projectors: a white page, near-black text, visible borders and slightly larger text (`.streamlit/config.toml`). The charts share one colourblind-safe palette from `ui/theme.py`: orange means a feature pushes the score toward VPN/proxy, and blue means it pushes away.
 
 On Windows, in Command Prompt from the project folder:
 
@@ -137,7 +138,7 @@ The anonymised IP ID is never a model input.
 
 **Leakage.** There is one row per IP, so the stratified 80/20 split cannot put the same IP in both train and test, and `split_by_ip` asserts this. Model and threshold selection use only 5-fold cross-validation on the training set; the test set is scored once per run, for reporting.
 
-**Population counts are computed before the split, on purpose.** `asn_unique_ips`, `jarm_shared`, `ja3s_shared` and `headers_hash_shared` count across the whole raw files, including test IPs and Kaggle's unlabelled test IPs. They never read a label, so no label information leaks, but the test IPs' existence does affect them. Counted over training IPs only with one frozen table, test F1 moved from 0.7663 to 0.7608, with a difference interval of [−0.019, +0.007]. `python -m experiments.audit_population_features` reproduces the audit, and `--write-inductive` writes an alternative table without changing existing data or results. A deployed system must compute these counts the same way as training.
+**Population counts are computed before the split, on purpose.** `asn_unique_ips`, `jarm_shared`, `ja3s_shared` and `headers_hash_shared` count across the whole raw files, including test IPs and Kaggle's unlabelled test IPs. They never read a label, so no label information leaks, but the test IPs' existence does affect them. Counted over training IPs only with one frozen table, test F1 moved from 0.7663 to 0.7608, with a difference interval of [−0.019, +0.007]. `python -m experiments.audit_population_features` reproduces the audit, and `--write-inductive` writes an alternative table without changing existing data or results. A deployed system must compute these counts the same way as training. `POST /predict/signals` does this: it looks them up in `models/feature_reference.json`, built from the same full files, and counts the new IP itself exactly as training did.
 
 **Validation** (`src/prepare_data.py`). It checks that:
 - the required columns exist
@@ -156,7 +157,8 @@ Run history lives in two places, and they aren't automatically the same:
 
 | Where | What's there |
 |---|---|
-| **Local:** `reports/experiments/artifacts/zainab_mlflow.db` | `zainab_experiments` (89 runs) and `zainab_ludwig_check` (1 run) |
+| **Local:** `mlflow.db` (open with `make mlflow`) | `vpn-proxy-classification`: one run per model each time `make run` or `make train` trains, the best tagged `best_model=true` |
+| **Local:** `reports/experiments/artifacts/zainab_mlflow.db` (open with `make mlflow-experiments`) | `zainab_experiments` (89 runs) and `zainab_ludwig_check` (1 run) |
 | **Local:** `reports/experiments/artifacts/baseline/baseline_repro_mlflow.db` | `zainab_baseline_repro_local` (5 runs) |
 | **Local:** `reports/experiments/artifacts/model_packages_mlflow.db` | `zainab_ludwig_trials` (the 20 trials, searchable) and `zainab_model_packages` (the 3 logged models) |
 | **Remote:** [DagsHub MLflow](https://dagshub.com/uzair-khiiba/VPN-Classifier-MLOps.mlflow/#/experiments) | `vpn-proxy-classification` (5 original runs), `zainab_experiments_history` (the 89 runs), `zainab_ludwig_check` (1), `zainab_ludwig_trials` (21), `zainab_baseline_repro_local` (5). Model Registry: `vpn-proxy-classifier`, with aliases `production` (`hgb_slow`) and `candidate` (400 trees) |
@@ -164,6 +166,8 @@ Run history lives in two places, and they aren't automatically the same:
 The 116 copied runs were verified value by value on the server (`reports/experiments/results/dagshub_sync_report.json`). The name `zainab_experiments` is unusable on DagsHub's server, so those 89 runs are under `zainab_experiments_history`, with their original run names. The repository is public, so anything logged there is public. The `production` alias only records what's deployed: the API still loads `models/model.joblib`, and doesn't read the registry. The local databases are git-ignored. `src/train.py` logs to `mlflow.db` in the project root by default, which doesn't exist until you train. [The operations guide](docs/OPERATIONS_GUIDE.md#mlflow) shows how to view each store and publish history. Set `MLFLOW_TRACKING_URI` to log a new training run elsewhere, and never commit a token.
 
 `src/train.py` logs one MLflow run per candidate to experiment `vpn-proxy-classification`, with parameters, cross-validated F1, the tuned threshold and test metrics (F1, precision, recall, PR-AUC, ROC-AUC, accuracy). The best run is tagged `best_model=true`.
+
+This is a tabular classifier trained on labelled data, so MLflow tracks training runs with different models and hyperparameters. The milestone's alternative for RAG, LLM and agent projects (evaluating prompts, models, parameters and temperature at inference time) doesn't apply.
 
 Results on the full data (118,607 train IPs, 29,652 test IPs):
 
@@ -200,7 +204,7 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 | `POST /explain?top_k=8` | Median replacement, not SHAP: the prediction, plus how much the probability changes when each feature is replaced by its training median |
 | `POST /explain/shap?top_k=28` | SHAP values for the VPN/proxy class from the served model, with the explainer that ran. They add up exactly to the model's log-odds |
 | `GET /explain/shap/global` | The saved SHAP ranking, returned only if it was generated for the served model version |
-| `GET /docs` | Auto-generated Swagger UI, with the two example IPs below preloaded |
+| `GET /docs` | Auto-generated Swagger UI, with the example requests below preloaded |
 
 Pydantic validates every field: counts must be whole numbers ≥ 0 (or ≥ 1 where an IP always has one), shares must be in [0, 1], flags must be 0 or 1, all fields are required, and unknown fields are rejected. Combinations the pipeline can't produce are rejected too, such as open ports with `has_shodan = 0` or attack shares adding up to more than 1 (the full list is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md)). A model file with a non-numeric threshold, missing metadata, or features that differ from the API's 28 is treated as no model. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
 
@@ -224,7 +228,7 @@ curl -X POST "http://127.0.0.1:8000/explain?top_k=3" -H "Content-Type: applicati
 # contributions: has_shodan +0.394, headers_hash_shared +0.058, n_tcp_ports +0.054
 ```
 
-`examples/` contains two typical IPs from the held-out test set: a VPN/proxy IP and a regular one.
+`examples/` contains two typical IPs from the held-out test set as 28 features (`vpn_ip.json`, `regular_ip.json`), and the raw signals and Shodan ports of a real VPN/proxy IP (`signals_request.json`). That IP is in the training data, so its computed `asn_unique_ips` and `headers_hash_shared` are one higher than its stored values; for an IP that isn't in the data, the features match training exactly.
 
 ## Explainability
 
@@ -284,23 +288,26 @@ make setup-automl          # separate .venv-ludwig: Ludwig 0.11.0 + PyTorch (CPU
 make automl                # the v2 search: expect 1-2 hours on 4 CPU cores (TRIALS=n for fewer)
 ```
 
-Ludwig has its own environment because of its size; the API doesn't need it. 0.11.0 is the last Ludwig release that supports Python 3.11. `src/automl_ludwig.py` disables one Ludwig 0.11 post-search step that crashes when re-evaluating trials ASHA stopped early; the runner retrains and evaluates the best trial itself instead.
+Ludwig can't share the main environment: Ludwig 0.11.0 requires `rich` older than 12.5, while the `dagshub` package used for publishing needs `rich` 13.1 or newer. It also adds PyTorch and Ray (about 2 GB), which the API and dashboard don't need. Its environment uses Python 3.11, where the search has been run. `src/automl_ludwig.py` disables one Ludwig 0.11 post-search step that crashes when re-evaluating trials ASHA stopped early; the runner retrains and evaluates the best trial itself instead.
 
 ## Tests
 
 ```bash
-make test         # pytest. Tests that need the real export or data are skipped if it's absent
+make test         # the pytest suite (also the last step of `make run`). Tests that need the real export or data are skipped if it's absent
 make lint         # ruff
 ```
+
+The suite covers the three parts the milestone asks for, and more: data preparation (`tests/test_prepare_data.py`), model loading (`tests/test_model_io.py`) and the prediction endpoint (`tests/test_app.py`).
 
 | File | Covers |
 |---|---|
 | `tests/test_prepare_data.py` | Validation (missing columns, null IDs, bad or conflicting labels, time-zone-aware timestamps), hand-checked feature values, Shodan parsing and fingerprint sharing, split leakage and stratification, end-to-end `prepare()` |
 | `tests/test_model_io.py` | Model bundle save/load round trip; missing, corrupt and invalid files; bad thresholds; the committed `models/model.joblib` loads and classifies both example IPs correctly |
-| `tests/test_app.py` | `/health` with and without a model, `/predict` output, 422 on invalid or missing or extra fields, `/explain` ordering, `/docs`, docs examples are valid requests |
-| `tests/test_api_extended.py` | Labels, `/model-info`, no file paths in errors, infinite values rejected, one model load, API documentation |
-| `tests/test_ui_client.py` | The dashboard's HTTP client against the real API, backend down, invalid responses, and that `ui/` never imports the model |
-| `tests/test_ui_app.py` | Every dashboard page run headlessly, including offline and no-model behaviour |
+| `tests/test_app.py` | `/health` with and without a model, `/predict` output, 422 on invalid, missing, extra or inconsistent fields, every real test IP passes the input rules, `/explain` ordering, `/docs`, docs examples are valid requests |
+| `tests/test_api_extended.py` | Labels, `/model-info`, no file paths in errors, infinite values rejected, bad model files put the API in degraded mode, duplicate lookup IDs refused, one model load, API documentation |
+| `tests/test_online_features.py` | Features built from one IP's signals equal the training pipeline's; lookup by IP ID; `/predict/signals` and `/features/from-signals`; invalid signal requests; attack types and fingerprints ignore case; missing lookup data only disables its endpoints |
+| `tests/test_ui_client.py` | The dashboard's HTTP client against the real API, backend down, invalid responses, IP not found, the signals table and CSV ASN parsing, form rules accept every real IP, and that `ui/` never imports the model |
+| `tests/test_ui_app.py` | Every dashboard page run headlessly, including lookup by IP ID, scoring from attack events, loading and pasting records, SHAP, and offline and no-model behaviour |
 | `tests/test_explain.py` | Permutation importance ranks the one informative feature first; the F1 scorer respects the threshold; the chart is written |
 | `tests/test_automl_config.py` | Both Ludwig configs match the pipeline's features; v2 has adaptive trials and a PR-AUC objective; retraining matches trials (no Ludwig install needed) |
 | `tests/test_export_features.py` | The export keeps training values and feature order, refuses the synthetic sample, and real rows get the same answer through the API |
@@ -312,7 +319,7 @@ make lint         # ruff
 ```
 src/            config, features, feature_docs, online_features, prepare_data, export_features, train, model_io,
                 app (FastAPI), explain, shap_explain, shap_report, automl_ludwig, ludwig_metrics, ludwig_trials
-ui/             Streamlit dashboard: streamlit_app, api_client (HTTP), features, reports, shap_view, views/
+ui/             Streamlit dashboard: streamlit_app, api_client (HTTP), features, reports, shap_view, theme, views/
 tests/          pytest suite and synthetic-data fixtures
 configs/        Ludwig configs and experiment settings
 experiments/    experiments A to F, verified comparison, history publishing, model logging and promotion
@@ -324,6 +331,15 @@ reports/        experiment report, verified comparison, figures, SHAP plots
 examples/       example request bodies (28 features, and raw signals)
 ```
 
+## Team
+
+| Member | ERP ID | Areas |
+|---|---|---|
+| Uzair Ahmed Khuhro | 29173 | Preprocessing, MLflow tracking, endpoint serving (FastAPI) |
+| Zainab Soomro | 28367 | Explainability (SHAP, permutation importance), AutoML (Ludwig) |
+
+The task-by-task record is in [CONTRIBUTION.md](CONTRIBUTION.md).
+
 ## Credits
 
 - Feature ideas, including fingerprint sharing, ASN crowding and attack timing, are adapted from the public 2nd-place solution notebook of the CrowdSec Kaggle competition ("crowdsec-vpn-classification-2nd-place"). Our code is a reimplementation, not a copy.
@@ -332,4 +348,4 @@ examples/       example request bodies (28 features, and raw signals)
 
 ## License
 
-MIT, see `LICENSE`. Team and contributions: `CONTRIBUTION.md`.
+MIT, see `LICENSE`.

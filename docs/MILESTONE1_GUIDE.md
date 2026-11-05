@@ -11,7 +11,7 @@ This guide is for both team members. **Part A** explains how to run every piece 
 | Tool | Why | Install |
 |---|---|---|
 | Linux, macOS or WSL | The Makefile uses a Unix shell | — |
-| `uv` | Creates the Python 3.11 environment and installs packages. It downloads Python 3.11 itself if needed | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| `uv` | Creates the Python 3.12 environment and installs packages. It downloads Python 3.12 itself if needed | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | `make` | Runs the short commands below | `sudo apt install make` |
 | `git` | To clone the repo | `sudo apt install git` |
 
@@ -47,7 +47,7 @@ CONTRIBUTION.md, AI_USAGE.md, LICENSE   required course documents
 
 ```bash
 cd VPN-Classifier-MLOps     # or the submission folder
-make setup                   # creates .venv (Python 3.11) and installs pinned packages, ~2 min
+make setup                   # creates .venv (Python 3.12) and installs pinned packages, ~2 min
 make serve                   # starts the API on http://127.0.0.1:8000
 ```
 
@@ -84,8 +84,8 @@ make lint     # ruff; prints "All checks passed!"
 ### A5. The whole pipeline without the dataset (synthetic sample)
 
 ```bash
-make data SAMPLE=1    # validates data/sample/, builds features, splits 240 train / 60 test IPs
-make train SAMPLE=1   # trains the 5 models on the sample, logs them to MLflow, saves to models/sample/
+make run SAMPLE=1     # validates data/sample/, splits 240 train / 60 test IPs, trains the 5 models,
+                      # logs them to MLflow, saves to models/sample/, then runs pytest
 ```
 
 With `SAMPLE=1`, everything goes to `data/processed-sample/` and `models/sample/`, so the real model in `models/model.joblib` is never touched. Its MLflow runs go to a separate experiment, `vpn-proxy-classification-sample`.
@@ -97,8 +97,9 @@ The sample has synthetic labels, so its scores mean nothing. It only shows that 
 1. Download `train.parq` and `shodan_df_hashed.csv` from the CrowdSec Kaggle competition. Put both in `data/raw/`. A symlink works too: `ln -s /path/to/train.parq data/raw/train.parq`.
 2. Run:
    ```bash
-   make data     # ~2.5 min, ~6 GB RAM: 61.6M signals → 148,259 IPs → 118,607 train / 29,652 test
-   make train    # ~11 min on 4 cores: 5 models × 5-fold CV, best one saved to models/
+   make run      # data: ~2.5 min, ~6 GB RAM: 61.6M signals → 148,259 IPs → 118,607 train / 29,652 test
+                 # train: ~11 min on 4 cores: 5 models × 5-fold CV, logged to MLflow, best saved to models/runs/
+                 # then the pytest suite. The deployed models/model.joblib is never overwritten
    ```
 3. Expected output (the seeds are fixed, so you should get the same numbers):
    ```
@@ -320,7 +321,7 @@ The tests use **small hand-made datasets** (`tests/conftest.py`), so they run in
 ### B14. Git and reproducibility
 
 - **Reproducibility:**
-  - Dependency versions are pinned in `requirements.txt`, and Python is fixed at 3.11.
+  - Dependency versions are pinned in `requirements.txt`, and Python is fixed at 3.12 (3.11 for the separate Ludwig environment).
   - Every random step uses `random_state=42`. Retraining on DagsHub gave *exactly* the same metrics.
   - The trained model is committed, so a clone runs the API immediately.
 - **Git workflow:** feature branches (`feat/`, `fix/`, `infra/`, `docs/`) merged into `main` with merge commits.
