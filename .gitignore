@@ -19,6 +19,7 @@ mlruns/
 mlartifacts/
 mlflow.db
 ludwig_results/
+ludwig_results_auto/
 .lock_preprocessing
 models/*.joblib
 models/sample/

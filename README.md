@@ -60,7 +60,7 @@ make serve        # serve the deployed model: API on http://127.0.0.1:8000, inte
 
 Run `make` on its own to list every command.
 
-**`make run` is the whole pipeline in one command.** It prepares the data if `data/processed/` doesn't exist yet, then trains the five candidate models with 5-fold cross-validation, scores each on the held-out test set, and logs every run to MLflow (`mlflow.db`) with its parameters and metrics. It saves the best model, versioned (`models/runs/vpn-clf_<model>_<timestamp>.joblib`), then runs the full pytest suite. On the real data it takes about 3 minutes for preparation and 11 for training on 4 CPU cores.
+**`make run` is the whole pipeline in one command.** It prepares the data if `data/processed/` doesn't exist yet, then trains the five candidate models with 5-fold cross-validation, scores each on the held-out test set, and logs every run to MLflow (`mlflow.db`) with its parameters and metrics. It saves the best model, versioned (`models/runs/vpn-clf_<model>_<timestamp>.joblib`), then runs the full pytest suite. On the real data it takes about 3 minutes for preparation, 8 to 11 for training on 4 CPU cores, and 2 for the tests. The seeds are fixed, so a rerun reproduces the same scores: the latest run matched the original exactly (CV F1 0.7694, test F1 0.7663).
 
 Training never overwrites the deployed model, `models/model.joblib`; the API keeps serving it. A new model is deployed only through `python -m experiments.promote_model` (see "Changing the deployed model" below). The deployed model and the lookup data (`models/ip_lookup.parquet`, `models/feature_reference.json`) are committed, so `make serve` works straight after cloning, including lookup by IP ID and scoring from attack events.
 
@@ -290,6 +290,29 @@ make automl                # the v2 search: expect 1-2 hours on 4 CPU cores (TRI
 
 Ludwig can't share the main environment: Ludwig 0.11.0 requires `rich` older than 12.5, while the `dagshub` package used for publishing needs `rich` 13.1 or newer. It also adds PyTorch and Ray (about 2 GB), which the API and dashboard don't need. Its environment uses Python 3.11, where the search has been run. `src/automl_ludwig.py` disables one Ludwig 0.11 post-search step that crashes when re-evaluating trials ASHA stopped early; the runner retrains and evaluates the best trial itself instead.
 
+### Ludwig AutoML, the simple version
+
+`make automl-simple` (`src/automl_simple.py`) is the hands-off counterpart: **we write no model config at all.** Ludwig's AutoML (`ludwig.automl.create_auto_config`) looks at the training data and decides everything itself, and the run saves those decisions in `ludwig_results_auto/auto_config.yaml`:
+
+| What Ludwig chose | For this data |
+|---|---|
+| Architecture | **TabNet**, an attention-based network for tables |
+| Search algorithm | **Random search** (Ray Tune's variant generator), with ASHA stopping weak trials early |
+| Trials | 10, within the time limit |
+| Tuned settings | 10: learning rate and its decay, plus TabNet's size, steps, sparsity and batch-norm settings |
+| Feature types | 24 numbers, 2 categories (`n_attack_types`, `n_attacker_as`), 2 binary flags |
+| Objective | Validation ROC-AUC |
+
+As in the other runs, the test set is never given to the search. The best trial is retrained, its F1 threshold is tuned on validation, and the test set is scored once. The run is logged to MLflow as `ludwig_auto_train`, next to the scikit-learn runs (`make mlflow`).
+
+Result of a 3-minute search (`make automl-simple MINUTES=3`) on 94,885 train and 23,722 validation IPs:
+
+| Test F1 | Precision | Recall | PR-AUC | ROC-AUC | Threshold |
+|---|---|---|---|---|---|
+| **0.710** | 0.704 | 0.716 | 0.724 | 0.980 | 0.29 |
+
+That's about the same as the hand-built Ludwig search (0.702), and still below the deployed `hgb_slow` (0.766), with almost no setup. The default is a 10-minute search; `MINUTES=n` changes it.
+
 ## Tests
 
 ```bash
@@ -309,6 +332,7 @@ The suite covers the three parts the milestone asks for, and more: data preparat
 | `tests/test_ui_client.py` | The dashboard's HTTP client against the real API, backend down, invalid responses, IP not found, the signals table and CSV ASN parsing, form rules accept every real IP, and that `ui/` never imports the model |
 | `tests/test_ui_app.py` | Every dashboard page run headlessly, including lookup by IP ID, scoring from attack events, loading and pasting records, SHAP, and offline and no-model behaviour |
 | `tests/test_explain.py` | Permutation importance ranks the one informative feature first; the F1 scorer respects the threshold; the chart is written |
+| `tests/test_automl_simple.py` | The simple AutoML runner loads without Ludwig, reports what AutoML chose, and imports Ludwig only inside `main()` |
 | `tests/test_automl_config.py` | Both Ludwig configs match the pipeline's features; v2 has adaptive trials and a PR-AUC objective; retraining matches trials (no Ludwig install needed) |
 | `tests/test_export_features.py` | The export keeps training values and feature order, refuses the synthetic sample, and real rows get the same answer through the API |
 | `tests/test_shap.py` | SHAP explains class 1 and adds up to the model; missing values; feature order; explainer fallback; the API endpoints; plots; the real served model |

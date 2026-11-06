@@ -42,7 +42,7 @@ TRAIN_ENV += MLFLOW_TRACKING_URI=sqlite:///$(CURDIR)/$(TRACKING_DB) MLFLOW_DISAB
 
 .DEFAULT_GOAL := help
 .PHONY: help run setup setup-ui setup-automl data train test lint mlflow mlflow-experiments serve ui \
-	lookup explain export shap comparison log-models publish-plan publish automl all clean clean-generated
+	lookup explain export shap comparison log-models publish-plan publish automl automl-simple all clean clean-generated
 
 help:             ## list the commands
 	@echo "Main commands (in order):"
@@ -123,6 +123,9 @@ publish:          ## copy local run history to DagsHub (run `dagshub login` firs
 setup-automl:     ## separate .venv-ludwig for the optional Ludwig search (PyTorch + Ray, ~2 GB)
 	uv venv --python 3.11 .venv-ludwig
 	uv pip install --python $(LUDWIG_PY) -r requirements-ludwig.txt
+
+automl-simple:    ## Ludwig AutoML: Ludwig designs the model and runs a random search, ~10 min. MINUTES=n to change
+	$(LUDWIG_PY) -m src.automl_simple $(if $(MINUTES),--time-limit-min $(MINUTES),)
 
 automl:           ## Ludwig hyperparameter search (configs/ludwig_automl_v2.yaml), 1-2 hours. TRIALS=n for fewer
 	$(LUDWIG_PY) -m src.automl_ludwig $(if $(TRIALS),--num-samples $(TRIALS),)
