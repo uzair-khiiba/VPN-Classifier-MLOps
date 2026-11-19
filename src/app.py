@@ -11,6 +11,7 @@ Run:  uvicorn src.app:app --reload     then open http://127.0.0.1:8000/docs
 import json
 import logging
 import math
+import os
 import re
 import threading
 import time
@@ -106,7 +107,7 @@ app = FastAPI(
                 "Score an IP from the held-out test set by its ID (`GET /predict/ip/{ip_id}`), a new IP from "
                 "its raw attack signals (`POST /predict/signals`), or any IP from its 28 features "
                 "(`POST /predict`). IPs are anonymised IDs (`attacker_ip_enum`), not addresses like 1.2.3.4.",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -356,6 +357,7 @@ class Health(BaseModel):
     ip_lookup_loaded: bool = Field(False, description="True if IPs can be looked up by ID (/predict/ip)")
     n_lookup_ips: int | None = None
     feature_reference_loaded: bool = Field(False, description="True if features can be built from signals")
+    build: str | None = Field(None, description="The commit the running image was built from (GIT_SHA)")
 
 
 class ModelInfo(BaseModel):
@@ -446,7 +448,7 @@ def _predict(bundle: dict, features: IPFeatures) -> tuple[dict, float]:
 def health() -> dict:
     bundle, lookup = STATE["bundle"], STATE["lookup"]
     data = {"ip_lookup_loaded": lookup is not None, "n_lookup_ips": None if lookup is None else len(lookup),
-            "feature_reference_loaded": STATE["reference"] is not None}
+            "feature_reference_loaded": STATE["reference"] is not None, "build": os.getenv("GIT_SHA")}
     if bundle is None:
         return {"status": "degraded", "model_loaded": False, "model_status": "failed",
                 "detail": STATE["error"] or "model not loaded", **data}
