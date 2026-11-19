@@ -6,6 +6,8 @@ Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how tha
 
 **Live API:** <https://vpn-proxy-api.onrender.com> (TODO: replace with the real Render URL) · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [metrics](https://vpn-proxy-api.onrender.com/metrics). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
 
+**Project focus:** AutoML versus manual training. See [Project Focus](#project-focus-automl-vs-manual-training).
+
 **Task:** binary classification, one prediction per attacker IP.
 **Metric:** F1 of the VPN/proxy class on a held-out test set of IPs. Only 1.95% of IPs are VPN/proxy, so accuracy is misleading: even the weakest model scores 98.4%.
 
@@ -153,6 +155,44 @@ curl -s $URL/metrics | python3 -m json.tool
 ```
 
 The counters are kept in memory, so they reset when the instance restarts, sleeps or redeploys. That's enough to demonstrate live traffic during grading; a dashboard such as Prometheus/Grafana is out of scope for this project's focus.
+
+## Project Focus: AutoML vs manual training
+
+**What the focus is.** A controlled comparison of AutoML against our hand-built training pipeline on the same data, features, split and evaluation code. It answers whether AutoML can match or beat a manually engineered and tuned model on this problem, and at what cost.
+
+- **Manual:** five model families chosen by us and selected by 5-fold CV F1. Experiments A–F tuned the threshold, class imbalance handling, hyperparameters and feature groups by hand. The result is the deployed `hgb_slow` and the best experimental model, `exp_c_trees_400_no_early_stop`.
+- **AutoML:** [Ludwig](https://ludwig.ai/) in two modes. The *hands-off* mode (`make automl-simple`) lets Ludwig choose the architecture (it picked TabNet), the search space and the search. The *guided* mode (`make automl`, v2 config) has Ludwig search a fixed neural network with TPE and a PR-AUC objective.
+
+**Why it suits this project.** The data is tabular and heavily imbalanced (1.95% positives), with 28 engineered behavioural features. On such data, gradient-boosted trees are usually hard to beat, so it's an open question whether AutoML saves effort here or costs accuracy. Our Milestone 1 numbers already show a gap: manual test F1 0.766 (deployed) and 0.788 (best), against 0.702 for guided Ludwig and 0.710 for hands-off Ludwig. However, [that comparison is not like for like](reports/experiments/verified_model_comparison.md). Ludwig trained on 94,885 IPs instead of 118,607, used one validation split instead of 5 folds, optimised ROC-AUC, and its first search never left random sampling. The focus is to remove those differences and measure the gap properly.
+
+**What will be built and compared.**
+
+1. **A fair protocol for every arm.** The same 118,607 training IPs, the same folds and validation IPs, F1 threshold tuning on validation only, and the 29,652-IP test set scored once at the end. The test set is never visible to any search.
+2. **Arms:**
+   - **Manual:** `hgb_slow` and the best tuned HGB.
+   - **AutoML, hands-off:** Ludwig `create_auto_config` with budgets of 10, 30 and 60 minutes.
+   - **AutoML, guided:** the Ludwig v2 search, 30 trials, 10 random then TPE, PR-AUC objective.
+   - **A tree-based AutoML library (FLAML) on the same budget.** This separates "AutoML vs manual" from "neural network vs trees".
+3. **What is measured:**
+   - Test F1, PR-AUC, and precision/recall at the tuned threshold.
+   - A paired bootstrap confidence interval for each arm's F1 difference from the manual model, so a small gap isn't over-read.
+   - F1 against search budget (a budget curve).
+   - Compute cost (wall-clock time and CPU-hours) and human effort (config lines written, decisions made by hand).
+   - Deployment cost: model size, Docker image size (Ludwig adds PyTorch, about 2 GB), and p50/p95 prediction latency inside the container.
+4. **Tracking:** every arm is logged to one MLflow experiment, `automl-vs-manual`, tagged `arm=manual|automl-handsoff|automl-guided|automl-flaml` with the same metric names. A script regenerates the comparison table and figures from MLflow and fails if any number doesn't match its saved predictions, as `experiments/verified_comparison.py` already does.
+
+**Already in place (Milestone 1–2):**
+- Both Ludwig runners: `src/automl_simple.py` and `src/automl_ludwig.py`.
+- PR-AUC as a Ludwig metric (`src/ludwig_metrics.py`).
+- Nested MLflow runs per trial (`src/ludwig_trials.py`).
+- The evidence for choosing PR-AUC as the search objective: Spearman correlation with CV F1 of 0.926 for PR-AUC against 0.631 for ROC-AUC.
+- The verified comparison table for the existing runs.
+- Tests: `tests/test_automl_config.py`, `tests/test_automl_simple.py`.
+
+**How it will be demonstrated (final submission):**
+- The MLflow compare view across the four arms.
+- A report, `reports/focus/automl_vs_manual.md`, with the table, the budget curve, PR curves and the bootstrap intervals.
+- A live switch: the winning AutoML model, if it can be served from the same `/predict` interface, is promoted to a tagged image and deployed. Its accuracy (`/model-info`) and latency (`/metrics`) are then compared side by side with the manual model's. The [runbook](RUNBOOK.md)'s rollback returns to the manual model's image tag.
 
 ## Dashboard
 
