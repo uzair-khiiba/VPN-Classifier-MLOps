@@ -13,6 +13,7 @@ import logging
 import math
 import re
 import threading
+import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Annotated
@@ -27,6 +28,7 @@ from src.config import FEATURE_REFERENCE_PATH, ID_COLUMN, IP_LOOKUP_PATH, MODEL_
 from src.feature_docs import FEATURE_DOCS, KIND_HELP
 from src.features import FEATURES
 from src.model_io import ModelLoadError, load_bundle
+from src.monitoring import METRICS
 from src.online_features import SIGNAL_COLUMNS, features_from_signals
 from src.shap_explain import ShapExplainer, ShapUnavailableError
 
@@ -107,6 +109,25 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    """Time every request, count it under its route template (so /predict/ip/1 and /predict/ip/2 are one
+    endpoint), and log one line per request. Paths that match no route are grouped, so scans can't grow the table."""
+    start = time.perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        response.headers["X-Process-Time-Ms"] = f"{(time.perf_counter() - start) * 1000:.2f}"
+        return response
+    finally:
+        latency_ms = (time.perf_counter() - start) * 1000
+        route = request.scope.get("route")
+        path = getattr(route, "path", None) or "<unmatched>"
+        METRICS.record(request.method, path, status, latency_ms)
+        logger.info("request method=%s path=%s status=%d latency_ms=%.2f", request.method, path, status, latency_ms)
 
 
 @app.exception_handler(RequestValidationError)
@@ -410,6 +431,7 @@ def _predict(bundle: dict, features: IPFeatures) -> tuple[dict, float]:
     proba = float(bundle["model"].predict_proba(_frame(bundle, [features.model_dump()]))[0, 1])
     meta = bundle["metadata"]
     is_vpn_proxy = proba >= bundle["threshold"]
+    METRICS.record_prediction(LABEL_POSITIVE if is_vpn_proxy else LABEL_NEGATIVE)
     return {
         "prediction": int(is_vpn_proxy),
         "label": LABEL_POSITIVE if is_vpn_proxy else LABEL_NEGATIVE,
@@ -431,6 +453,13 @@ def health() -> dict:
     meta = bundle["metadata"]
     return {"status": "ok", "model_loaded": True, "model_status": "loaded",
             "model": meta["model_name"], "version": meta["version"], **data}
+
+
+@app.get("/metrics")
+def metrics() -> dict:
+    """Monitoring: request count, errors (5xx) and latency since the process started, overall and per
+    endpoint, plus how many predictions of each class were served. Counters reset on restart."""
+    return METRICS.snapshot()
 
 
 @app.get("/model-info", response_model=ModelInfo, responses=MODEL_UNAVAILABLE)
