@@ -1,0 +1,25 @@
+# Only what the API needs goes into the image: see the COPY lines in the Dockerfile.
+.git
+.github
+.venv
+.venv-ludwig
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+data
+mlruns
+mlartifacts
+mlflow.db
+ludwig_results*
+models/runs
+models/sample
+models/candidates
+models/archive
+backups
+reports/experiments
+reports/presentation_brief
+docs
+*.docx
+*.pptx
+.env

@@ -1,0 +1,14 @@
+# Runtime packages for the API container only (see Dockerfile). Versions match requirements.txt.
+# Training, MLflow, DagsHub, plotting and test tools are left out to keep the image small.
+duckdb==1.5.6
+fastapi==0.146.0
+joblib==1.6.0
+numpy==2.4.6
+pandas==3.0.6
+pyarrow==25.0.1
+pydantic==2.14.1
+scikit-learn==1.9.1
+scipy==1.18.1
+# For POST /explain/shap; imported only on the first SHAP request.
+shap==0.54.1
+uvicorn[standard]==0.54.0
