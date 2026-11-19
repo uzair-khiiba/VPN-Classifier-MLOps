@@ -57,6 +57,19 @@ The group has two members, which the instructor approved.
 | SHAP explanations (`POST /explain/shap`, `GET /explain/shap/global`), plots and dashboard view | `src/shap_explain.py`, `src/shap_report.py`, `ui/shap_view.py`, `tests/test_shap.py` | Zainab Soomro |
 | Ludwig AutoML v2 (PR-AUC objective, nested trial runs) | `configs/ludwig_automl_v2.yaml`, `src/ludwig_metrics.py`, `src/ludwig_trials.py`, `experiments/backfill_ludwig_trials.py`, `experiments/check_ludwig_artifact.py` | Zainab Soomro |
 
+## Milestone 2: Containerization, CI/CD & Deployment (`v2.0-milestone2`)
+
+| Task | Files | Owner |
+|---|---|---|
+| Dockerfile (two-stage, non-root, `/health` healthcheck), slim runtime requirements | `Dockerfile`, `.dockerignore`, `requirements-api.txt` | Uzair Ahmed Khuhro |
+| GitHub Actions CI: lint, test, Docker build + smoke test, push to GHCR | `.github/workflows/ci.yml` | Uzair Ahmed Khuhro |
+| Deployment on Render, deploy job, rollback by image tag | `render.yaml`, `.github/workflows/ci.yml`, `RUNBOOK.md` | Uzair Ahmed Khuhro |
+| Monitoring: per-request logging, `GET /metrics` counters, build ID in `/health` | `src/monitoring.py`, `src/app.py` | Uzair Ahmed Khuhro |
+| Monitoring tests | `tests/test_monitoring.py` | Uzair Ahmed Khuhro |
+| Project Focus (AutoML vs manual training): scope, fair-comparison protocol, plan | `README.md` (Project Focus) | Zainab Soomro |
+| AutoML groundwork carried into the focus (Ludwig hands-off and guided runners, PR-AUC objective, tests) | `src/automl_simple.py`, `src/automl_ludwig.py`, `tests/test_automl_*.py` | Zainab Soomro |
+| README deployment, monitoring and cURL sections; Makefile Docker targets | `README.md`, `Makefile` | Uzair Ahmed Khuhro |
+
 ## Reflections
 
 Each member writes 2–3 lines on what they built and what they learned.
