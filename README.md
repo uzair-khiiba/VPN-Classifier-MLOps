@@ -1,6 +1,12 @@
 # VPN/Proxy IP Classifier
 
-Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how that IP behaves across its attack signals. Served through a FastAPI endpoint.
+[![CI](https://github.com/uzair-khiiba/VPN-Classifier-MLOps/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uzair-khiiba/VPN-Classifier-MLOps/actions/workflows/ci.yml)
+
+Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how that IP behaves across its attack signals. Served through a FastAPI endpoint, packaged with Docker and deployed on Render.
+
+**Live API:** <https://vpn-proxy-api.onrender.com> (TODO: replace with the real Render URL) · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [metrics](https://vpn-proxy-api.onrender.com/metrics). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
+
+**Project focus:** AutoML versus manual training. See [Project Focus](#project-focus-automl-vs-manual-training).
 
 **Task:** binary classification, one prediction per attacker IP.
 **Metric:** F1 of the VPN/proxy class on a held-out test set of IPs. Only 1.95% of IPs are VPN/proxy, so accuracy is misleading: even the weakest model scores 98.4%.
@@ -67,6 +73,126 @@ Training never overwrites the deployed model, `models/model.joblib`; the API kee
 **Without the dataset,** run the same pipeline on the committed synthetic sample: `make run SAMPLE=1`. Its outputs go to `data/processed-sample/` and `models/sample/`, and its runs to a separate MLflow experiment, `vpn-proxy-classification-sample`.
 
 The steps can also be run one at a time: `make data`, `make train`, `make test`. Other commands: `make lookup` rebuilds the API's lookup data, `make explain` computes permutation importance, and `make mlflow-experiments` opens the experiment track's 89 runs. Without `make`, the same steps are `python -m src.prepare_data`, `python -m src.train`, `python -m pytest` and `uvicorn src.app:app`.
+
+## Deployment (Milestone 2)
+
+```
+git push main ─► GitHub Actions CI ─────────────────────────────────────────────────► Render (free web service)
+                 lint (ruff) ─┐                                                       runs ghcr.io/…:sha-<commit>
+                 test (pytest)┴► build Docker image ─► smoke test ─► push to GHCR ─► deploy hook   health check /health
+```
+
+### Docker
+
+[Dockerfile](Dockerfile) is a two-stage build on `python:3.12-slim`. The first stage installs only the API's runtime packages ([requirements-api.txt](requirements-api.txt)): no MLflow, training or test tools. The second stage copies that environment plus `src/`, the trained model and its lookup data (`models/model.joblib`, `model_meta.json`, `ip_lookup.parquet`, `feature_reference.json`), the request examples and the saved SHAP ranking. It then runs uvicorn as a non-root user on port 8000, or on `$PORT` if the platform sets one. A `HEALTHCHECK` calls `/health` every 30 s and marks the container unhealthy unless the model is loaded (`"status": "ok"`). The image's commit is baked in as `GIT_SHA`, and `/health` reports it as `build`.
+
+```bash
+make docker-build          # docker build -t vpn-proxy-api:local .
+make docker-run            # docker run -p 8000:8000 vpn-proxy-api:local
+docker ps                  # STATUS shows (healthy) after ~20 s
+make docker-stop
+```
+
+Measured locally: compressed image 243 MB, memory use about 230 MB after serving every endpoint, including SHAP.
+
+### CI ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+
+| Job | Runs on | What it does |
+|---|---|---|
+| **lint** | every push and PR | `ruff check src tests ui experiments` |
+| **test** | every push and PR | `pytest` (~210 tests; synthetic data and the committed model, no dataset needed). The pass/fail count shows in the job, and the JUnit report is uploaded as an artifact |
+| **build** | after lint and test pass | Builds the Docker image, then starts it and checks `/health`, a `/predict` call, `/metrics`, and the Docker `HEALTHCHECK` status. On a push to `main` it also pushes `ghcr.io/uzair-khiiba/vpn-classifier-mlops:sha-<commit>` and `:latest`. A `v*` tag also pushes `:<tag>` |
+| **deploy** | pushes to `main` | Calls Render's deploy hook with that exact `sha-<commit>` image, then waits until the live `/health` reports the new build |
+
+### Deploying on Render
+
+The setup is done once and described in [RUNBOOK.md](RUNBOOK.md#one-time-setup):
+
+1. Push to `main` so CI publishes the first image, then make the GHCR package public.
+2. In Render, choose New → Blueprint and select this repo. [render.yaml](render.yaml) creates the `vpn-proxy-api` web service from the GHCR image, with health check path `/health`.
+3. Add the service's deploy hook as the repo secret `RENDER_DEPLOY_HOOK_URL`, and its URL as the repo variable `SERVICE_URL`.
+
+After that, every merge to `main` is tested, built and deployed automatically. **Redeploying and rolling back to an earlier image tag** are covered step by step in [RUNBOOK.md](RUNBOOK.md).
+
+### Example requests against the deployed service
+
+```bash
+URL=https://vpn-proxy-api.onrender.com     # TODO: the real Render URL
+
+curl $URL/health
+# {"status":"ok","model_loaded":true,"model_status":"loaded","model":"hgb_slow","version":"20261019-173911",
+#  "ip_lookup_loaded":true,"n_lookup_ips":29652,"feature_reference_loaded":true,"build":"<commit>"}
+
+curl -X POST $URL/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
+# {"prediction":1,"label":"VPN/Proxy","is_vpn_proxy":true,"probability":0.9923,"threshold":0.9015,"model_version":"hgb_slow-20261019-173911"}
+
+curl -X POST $URL/predict -H "Content-Type: application/json" -d @examples/regular_ip.json
+# {"prediction":0,"label":"Not VPN/Proxy","is_vpn_proxy":false,"probability":0.0055,...}
+
+curl $URL/predict/ip/47584                                   # a held-out test IP, by ID
+curl -X POST $URL/predict/signals -H "Content-Type: application/json" -d @examples/signals_request.json
+curl -X POST "$URL/explain/shap?top_k=3" -H "Content-Type: application/json" -d @examples/vpn_ip.json
+curl $URL/metrics                                            # monitoring, see below
+```
+
+## Monitoring
+
+Every request goes through a small middleware ([src/monitoring.py](src/monitoring.py)) that times it and records it under its route template, so `/predict/ip/1` and `/predict/ip/2` count as one endpoint. Paths that match no route, such as bot scans, are grouped as `<unmatched>`. The numbers are visible in three places:
+
+- **`GET /metrics`** (counter endpoint): totals since the process started (requests, 5xx errors, average latency), predictions served per class, and per endpoint the count, errors, and average, p95 and max latency.
+- **Logs:** one line per request in Render's log viewer: `request method=POST path=/predict status=200 latency_ms=4.21`.
+- **Response header:** `X-Process-Time-Ms` on every response.
+
+```bash
+curl -s $URL/metrics | python3 -m json.tool
+# {
+#   "started_at": "2026-11-18T07:39:06+00:00", "uptime_s": 4.2,
+#   "total_requests": 10, "total_errors": 0, "avg_latency_ms": 55.5,
+#   "predictions": {"VPN/Proxy": 4, "Not VPN/Proxy": 1},
+#   "endpoints": {
+#     "POST /predict": {"count": 2, "errors": 0, "avg_latency_ms": 22.52, "p95_latency_ms": 36.8, "max_latency_ms": 36.8},
+#     "GET /health":   {"count": 3, "errors": 0, "avg_latency_ms": 1.69, ...}, ...
+```
+
+The counters are kept in memory, so they reset when the instance restarts, sleeps or redeploys. That's enough to demonstrate live traffic during grading; a dashboard such as Prometheus/Grafana is out of scope for this project's focus.
+
+## Project Focus: AutoML vs manual training
+
+**What the focus is.** A controlled comparison of AutoML against our hand-built training pipeline on the same data, features, split and evaluation code. It answers whether AutoML can match or beat a manually engineered and tuned model on this problem, and at what cost.
+
+- **Manual:** five model families chosen by us and selected by 5-fold CV F1. Experiments A–F tuned the threshold, class imbalance handling, hyperparameters and feature groups by hand. The result is the deployed `hgb_slow` and the best experimental model, `exp_c_trees_400_no_early_stop`.
+- **AutoML:** [Ludwig](https://ludwig.ai/) in two modes. The *hands-off* mode (`make automl-simple`) lets Ludwig choose the architecture (it picked TabNet), the search space and the search. The *guided* mode (`make automl`, v2 config) has Ludwig search a fixed neural network with TPE and a PR-AUC objective.
+
+**Why it suits this project.** The data is tabular and heavily imbalanced (1.95% positives), with 28 engineered behavioural features. On such data, gradient-boosted trees are usually hard to beat, so it's an open question whether AutoML saves effort here or costs accuracy. Our Milestone 1 numbers already show a gap: manual test F1 0.766 (deployed) and 0.788 (best), against 0.702 for guided Ludwig and 0.710 for hands-off Ludwig. However, [that comparison is not like for like](reports/experiments/verified_model_comparison.md). Ludwig trained on 94,885 IPs instead of 118,607, used one validation split instead of 5 folds, optimised ROC-AUC, and its first search never left random sampling. The focus is to remove those differences and measure the gap properly.
+
+**What will be built and compared.**
+
+1. **A fair protocol for every arm.** The same 118,607 training IPs, the same folds and validation IPs, F1 threshold tuning on validation only, and the 29,652-IP test set scored once at the end. The test set is never visible to any search.
+2. **Arms:**
+   - **Manual:** `hgb_slow` and the best tuned HGB.
+   - **AutoML, hands-off:** Ludwig `create_auto_config` with budgets of 10, 30 and 60 minutes.
+   - **AutoML, guided:** the Ludwig v2 search, 30 trials, 10 random then TPE, PR-AUC objective.
+   - **A tree-based AutoML library (FLAML) on the same budget.** This separates "AutoML vs manual" from "neural network vs trees".
+3. **What is measured:**
+   - Test F1, PR-AUC, and precision/recall at the tuned threshold.
+   - A paired bootstrap confidence interval for each arm's F1 difference from the manual model, so a small gap isn't over-read.
+   - F1 against search budget (a budget curve).
+   - Compute cost (wall-clock time and CPU-hours) and human effort (config lines written, decisions made by hand).
+   - Deployment cost: model size, Docker image size (Ludwig adds PyTorch, about 2 GB), and p50/p95 prediction latency inside the container.
+4. **Tracking:** every arm is logged to one MLflow experiment, `automl-vs-manual`, tagged `arm=manual|automl-handsoff|automl-guided|automl-flaml` with the same metric names. A script regenerates the comparison table and figures from MLflow and fails if any number doesn't match its saved predictions, as `experiments/verified_comparison.py` already does.
+
+**Already in place (Milestone 1–2):**
+- Both Ludwig runners: `src/automl_simple.py` and `src/automl_ludwig.py`.
+- PR-AUC as a Ludwig metric (`src/ludwig_metrics.py`).
+- Nested MLflow runs per trial (`src/ludwig_trials.py`).
+- The evidence for choosing PR-AUC as the search objective: Spearman correlation with CV F1 of 0.926 for PR-AUC against 0.631 for ROC-AUC.
+- The verified comparison table for the existing runs.
+- Tests: `tests/test_automl_config.py`, `tests/test_automl_simple.py`.
+
+**How it will be demonstrated (final submission):**
+- The MLflow compare view across the four arms.
+- A report, `reports/focus/automl_vs_manual.md`, with the table, the budget curve, PR curves and the bootstrap intervals.
+- A live switch: the winning AutoML model, if it can be served from the same `/predict` interface, is promoted to a tagged image and deployed. Its accuracy (`/model-info`) and latency (`/metrics`) are then compared side by side with the manual model's. The [runbook](RUNBOOK.md)'s rollback returns to the manual model's image tag.
 
 ## Dashboard
 
@@ -194,7 +320,7 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 
 | Endpoint | Description |
 |---|---|
-| `GET /health` | Status, and whether the model is loaded, with its name and version |
+| `GET /health` | Status, and whether the model is loaded, with its name and version, and the running image's commit (`build`) |
 | `GET /model-info` | The served model's identity and saved evaluation metrics |
 | `POST /predict` | The 28 features of one IP → `prediction`, `label`, `is_vpn_proxy`, `probability`, the threshold and the model version |
 | `GET /predict/ip/{ip_id}` | An IP from the held-out test set, by ID → the prediction, its stored features and its true class (404 if it isn't in the test set) |
@@ -204,6 +330,7 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 | `POST /explain?top_k=8` | Median replacement, not SHAP: the prediction, plus how much the probability changes when each feature is replaced by its training median |
 | `POST /explain/shap?top_k=28` | SHAP values for the VPN/proxy class from the served model, with the explainer that ran. They add up exactly to the model's log-odds |
 | `GET /explain/shap/global` | The saved SHAP ranking, returned only if it was generated for the served model version |
+| `GET /metrics` | Monitoring: request count, 5xx errors and latency (avg, p95, max) per endpoint since start, and predictions per class |
 | `GET /docs` | Auto-generated Swagger UI, with the example requests below preloaded |
 
 Pydantic validates every field: counts must be whole numbers ≥ 0 (or ≥ 1 where an IP always has one), shares must be in [0, 1], flags must be 0 or 1, all fields are required, and unknown fields are rejected. Combinations the pipeline can't produce are rejected too, such as open ports with `has_shodan = 0` or attack shares adding up to more than 1 (the full list is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md)). A model file with a non-numeric threshold, missing metadata, or features that differ from the API's 28 is treated as no model. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
@@ -336,13 +463,14 @@ The suite covers the three parts the milestone asks for, and more: data preparat
 | `tests/test_automl_config.py` | Both Ludwig configs match the pipeline's features; v2 has adaptive trials and a PR-AUC objective; retraining matches trials (no Ludwig install needed) |
 | `tests/test_export_features.py` | The export keeps training values and feature order, refuses the synthetic sample, and real rows get the same answer through the API |
 | `tests/test_shap.py` | SHAP explains class 1 and adds up to the model; missing values; feature order; explainer fallback; the API endpoints; plots; the real served model |
+| `tests/test_monitoring.py` | `/metrics` counts requests per route template with latency, groups unknown paths, counts 5xx but not 422, counts predictions per class; each request is logged; `X-Process-Time-Ms` header |
 | `tests/test_mlflow_publish.py` | History copy: no duplicates, resuming, failures, verification. Model logging and reload. Promotion refusals. The deployed model's hash. Nested trials |
 
 ## Repository layout
 
 ```
 src/            config, features, feature_docs, online_features, prepare_data, export_features, train, model_io,
-                app (FastAPI), explain, shap_explain, shap_report, automl_ludwig, ludwig_metrics, ludwig_trials
+                app (FastAPI), monitoring (/metrics), explain, shap_explain, shap_report, automl_ludwig, ludwig_metrics, ludwig_trials
 ui/             Streamlit dashboard: streamlit_app, api_client (HTTP), features, reports, shap_view, theme, views/
 tests/          pytest suite and synthetic-data fixtures
 configs/        Ludwig configs and experiment settings
@@ -353,6 +481,9 @@ models/         model.joblib (deployed model), model_meta.json, feature_importan
                 ip_lookup.parquet + feature_reference.json (API lookup data), candidates/ (not committed)
 reports/        experiment report, verified comparison, figures, SHAP plots
 examples/       example request bodies (28 features, and raw signals)
+.github/workflows/ci.yml   CI: lint, test, Docker build + smoke test, push to GHCR, deploy to Render
+Dockerfile, .dockerignore, requirements-api.txt   the API image
+render.yaml     Render service definition;  RUNBOOK.md: redeploy and roll back
 ```
 
 ## Team

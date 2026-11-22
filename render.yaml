@@ -1,0 +1,13 @@
+# Render Blueprint for the API (Dashboard → New → Blueprint → pick this repo).
+# Render runs the image CI pushed to GitHub Container Registry; it does not build the Dockerfile itself,
+# so what is deployed is exactly what CI tested. CI's deploy job switches it to each new sha-<commit> tag.
+services:
+  - type: web
+    name: vpn-proxy-api
+    runtime: image
+    image:
+      url: ghcr.io/uzair-khiiba/vpn-classifier-mlops:latest
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: false

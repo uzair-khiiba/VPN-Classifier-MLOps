@@ -42,7 +42,8 @@ TRAIN_ENV += MLFLOW_TRACKING_URI=sqlite:///$(CURDIR)/$(TRACKING_DB) MLFLOW_DISAB
 
 .DEFAULT_GOAL := help
 .PHONY: help run setup setup-ui setup-automl data train test lint mlflow mlflow-experiments serve ui \
-	lookup explain export shap comparison log-models publish-plan publish automl automl-simple all clean clean-generated
+	lookup explain export shap comparison log-models publish-plan publish automl automl-simple all clean clean-generated \
+	docker-build docker-run docker-stop
 
 help:             ## list the commands
 	@echo "Main commands (in order):"
@@ -129,6 +130,21 @@ automl-simple:    ## Ludwig AutoML: Ludwig designs the model and runs a random s
 
 automl:           ## Ludwig hyperparameter search (configs/ludwig_automl_v2.yaml), 1-2 hours. TRIALS=n for fewer
 	$(LUDWIG_PY) -m src.automl_ludwig $(if $(TRIALS),--num-samples $(TRIALS),)
+
+# ---- Docker (Milestone 2) -----------------------------------------------------------------
+
+IMAGE ?= vpn-proxy-api
+TAG ?= local
+
+docker-build:     ## build the API image (IMAGE=vpn-proxy-api TAG=local)
+	docker build --build-arg GIT_SHA=$$(git rev-parse --short HEAD) -t $(IMAGE):$(TAG) .
+
+docker-run:       ## run the API image on http://127.0.0.1:8000 (Docker healthcheck hits /health)
+	docker run -d --rm --name vpn-proxy-api -p 8000:8000 $(IMAGE):$(TAG)
+	@echo "Started. Try: curl http://127.0.0.1:8000/health   and   curl http://127.0.0.1:8000/metrics"
+
+docker-stop:      ## stop the container started by docker-run
+	docker stop vpn-proxy-api
 
 all: run          ## same as `make run`
 
