@@ -1,0 +1,27 @@
+# Used by ui.Dockerfile instead of .dockerignore. Only what the dashboard needs goes into the image.
+.git
+.github
+.venv
+.venv-ludwig
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+data
+mlruns
+mlartifacts
+mlflow.db
+ludwig_results*
+models/runs
+models/sample
+models/candidates
+models/archive
+models/*.joblib
+models/*.parquet
+backups
+reports/experiments/artifacts
+reports/presentation_brief
+docs
+*.docx
+*.pptx
+.env

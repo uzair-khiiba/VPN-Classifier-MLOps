@@ -25,6 +25,16 @@ push to main ─► CI: lint ─┐
 
 Without the secret, the deploy job prints a warning and skips the deploy; the rest of CI still runs.
 
+### The dashboard service
+
+The dashboard (`vpn-proxy-dashboard`, image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard`, built from `ui.Dockerfile`) is set up the same way:
+
+1. After CI's first run on `main` with the dashboard job, make the `vpn-classifier-dashboard` package public.
+2. In Render, open the Blueprint and **Sync** it so it picks up the second service in `render.yaml`. Or create it with New → Web Service → Existing image → `ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest`, health check path `/_stcore/health`, and environment variable `API_BASE_URL=https://vpn-proxy-api.onrender.com`.
+3. Add the dashboard's deploy hook to the `production` environment as the secret `RENDER_DASHBOARD_DEPLOY_HOOK_URL`.
+
+Redeploying and rolling back work exactly as for the API: use the dashboard's hook and its `sha-<commit>` tags. The two services are independent, so rolling back one doesn't touch the other.
+
 ## Redeploy
 
 | Situation | Do this |
