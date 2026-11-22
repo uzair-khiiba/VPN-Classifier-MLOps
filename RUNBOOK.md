@@ -6,7 +6,7 @@ How the API is deployed, how to redeploy it, how to roll back to an earlier imag
 |---|---|
 | Live API | <https://vpn-proxy-api.onrender.com> (`/health`, `/docs`, `/stats`, `/metrics`, `/model-info`) |
 | Image | `ghcr.io/uzair-khiiba/vpn-classifier-mlops`, tags `sha-<7-char commit>`, `latest` and `v*` |
-| Dashboard | Not hosted yet: see [The dashboard service](#the-dashboard-service) |
+| Dashboard | <https://vpn-proxy-dashboard.onrender.com>, image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard` |
 
 ## Run the container locally
 
@@ -61,7 +61,9 @@ Without the secret, the deploy job prints a warning and skips the deploy; the re
 
 ### The dashboard service
 
-**Status: not live.** CI builds, smoke-tests and publishes the dashboard image, and the image is public, but the Render service has never been created. So <https://vpn-proxy-dashboard.onrender.com> answers 404 with `x-render-routing: no-server`, and CI's dashboard deploy step is skipped because `RENDER_DASHBOARD_DEPLOY_HOOK_URL` isn't set. Steps 2 and 3 below need someone with access to the Render account and the GitHub repo settings.
+**Status: live, redeployed by hand.** The service was created in Render from the public image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest` (no registry credential), with `API_BASE_URL=https://vpn-proxy-api.onrender.com` and health check path `/_stcore/health`. `RENDER_DASHBOARD_DEPLOY_HOOK_URL` isn't set, so CI's dashboard deploy step is skipped. To update the dashboard after CI publishes a new image, use Render → `vpn-proxy-dashboard` → **Manual Deploy → Deploy latest reference**. Adding the secret (step 3) makes CI do this automatically.
+
+**If the dashboard says "API offline":** the API was asleep. Open <https://vpn-proxy-api.onrender.com/health>, wait for it to answer, then reload the dashboard.
 
 The dashboard (`vpn-proxy-dashboard`, image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard`, built from `ui.Dockerfile`) is set up the same way:
 

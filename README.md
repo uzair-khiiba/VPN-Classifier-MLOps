@@ -6,7 +6,7 @@ Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how tha
 
 **Live API:** <https://vpn-proxy-api.onrender.com> · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [health](https://vpn-proxy-api.onrender.com/health) · [monitoring](https://vpn-proxy-api.onrender.com/stats) (`/stats`, also at `/metrics`). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
 
-**Dashboard:** runs locally against the live API (see [Dashboard](#dashboard)). Its Render service isn't live yet: the image is built and tested by CI, but the service hasn't been created on Render.
+**Live dashboard:** <https://vpn-proxy-dashboard.onrender.com>, which calls the live API above. See [Dashboard](#dashboard).
 
 **Project focus:** AutoML versus manual training. See [Project Focus](#project-focus-automl-vs-manual-training).
 
@@ -18,7 +18,7 @@ Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how tha
 |---|---|---|
 | Dockerfile with `/health` healthcheck | [Dockerfile](Dockerfile), [.dockerignore](.dockerignore) | Built and run locally; reports `(healthy)` |
 | CI: lint, test, Docker build | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Runs on every push; builds and smoke-tests the image |
-| Deployment | Render web service, [render.yaml](render.yaml) | Live at <https://vpn-proxy-api.onrender.com> |
+| Deployment | Render web services, [render.yaml](render.yaml) | API live at <https://vpn-proxy-api.onrender.com>; dashboard at <https://vpn-proxy-dashboard.onrender.com> |
 | Monitoring | `GET /stats` (alias `GET /metrics`), per-request logs | Request count, errors and average latency per endpoint |
 | Redeploy and rollback | [RUNBOOK.md](RUNBOOK.md) | By image tag `sha-<commit>` |
 | Project Focus | [below](#project-focus-automl-vs-manual-training) | Plan written; the comparison runs are future work |
@@ -145,7 +145,7 @@ Measured locally: compressed image 243 MB, memory use about 230 MB after serving
 | **build** | after lint and test pass | Builds the Docker image, then starts it and checks `/health`, a `/predict` call, `/metrics`, `/stats`, `/model-info` and the Docker `HEALTHCHECK` status. On a push to `main` it also pushes `ghcr.io/uzair-khiiba/vpn-classifier-mlops:sha-<commit>` and `:latest`. A `v*` tag also pushes `:<tag>` |
 | **build-dashboard** | after lint and test pass | The same for the dashboard image ([ui.Dockerfile](ui.Dockerfile)): builds, smoke-tests and, on `main`, pushes `vpn-classifier-dashboard` |
 | **deploy** | pushes to `main` | Calls Render's deploy hook with that exact `sha-<commit>` image, waits until the live `/health` reports the new build, then checks `/health`, `/predict` and `/stats` on it |
-| **deploy-dashboard** | pushes to `main` | Calls the dashboard's deploy hook |
+| **deploy-dashboard** | pushes to `main` | Calls the dashboard's deploy hook, if `RENDER_DASHBOARD_DEPLOY_HOOK_URL` is set. It isn't set yet, so this step is skipped and the dashboard is redeployed by hand in Render |
 
 **A deploy without its secret is reported as skipped, not as a success.** Each deploy job first checks its deploy hook secret. If it's missing, the deploy steps show as skipped, and the run summary names the missing secret. Lint, test and build never need secrets.
 
@@ -250,7 +250,7 @@ curl -s $URL/stats | python3 -m json.tool
 
 A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you score an IP (by its ID, from its attack events, or from its 28 features), see why the model made the prediction, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
 
-**Deployment status: ready, not live.** [ui.Dockerfile](ui.Dockerfile) builds a dashboard image (Streamlit, Altair, httpx and pandas only, with no model), and CI builds, smoke-tests and publishes it as `ghcr.io/uzair-khiiba/vpn-classifier-dashboard`. The Render service in [render.yaml](render.yaml) hasn't been created yet, so <https://vpn-proxy-dashboard.onrender.com> doesn't answer. [RUNBOOK.md](RUNBOOK.md#the-dashboard-service) lists the two steps that bring it up. Until then, run it locally against the live API:
+**Deployed:** <https://vpn-proxy-dashboard.onrender.com> is a second Render web service. It runs the public image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest`, built from [ui.Dockerfile](ui.Dockerfile) (Streamlit, Altair, httpx and pandas only, with no model), with `API_BASE_URL` set to the live API and health check path `/_stcore/health`. CI builds, smoke-tests and publishes the image on every push to `main`. The service isn't redeployed automatically yet: after a change, use Render → the service → **Manual Deploy → Deploy latest reference** (see [RUNBOOK.md](RUNBOOK.md#the-dashboard-service)). To run it locally against the live API instead:
 
 ```bash
 docker run -p 8501:8501 -e API_BASE_URL=https://vpn-proxy-api.onrender.com ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest
@@ -552,7 +552,7 @@ render.yaml     Render service definition;  RUNBOOK.md: redeploy and roll back
 
 - **Monitoring resets.** `/stats` lives in memory, so it restarts from zero after a redeploy or when the free instance sleeps.
 - **Cold starts.** Render's free plan sleeps after 15 idle minutes, and the first request then takes 30–60 s.
-- **The dashboard isn't hosted yet.** Its image is ready, but its Render service hasn't been created.
+- **The dashboard updates by hand.** Its Render service has no deploy hook in CI yet, so a new dashboard image goes live only after a manual deploy in Render.
 - **An IP needs its features, not its address.** The API scores an IP from its 28 features, its raw signals, or its test-set ID. There's no lookup of real IP addresses, because the dataset anonymises them, and no live Shodan query.
 - **Population counts are frozen.** `asn_unique_ips` and the `*_shared` features use counts from the training data's snapshot (`models/feature_reference.json`), so they slowly go out of date for new traffic.
 - **The Project Focus comparison is planned, not done.** The fair AutoML-vs-manual runs (FLAML, budget curves, the four-arm table) haven't been executed yet.
