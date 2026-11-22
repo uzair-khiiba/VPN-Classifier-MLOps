@@ -20,7 +20,7 @@ The group has two members, which the instructor approved.
 | Task | Owner |
 |---|---|
 | Proposal document | Zainab Soomro, Uzair Ahmed Khuhro |
-| Proposal slides and presentation | _presenter: TODO_ |
+| Proposal slides and presentation | **To fill in:** the project record doesn't say who presented |
 
 ## Areas of ownership
 
@@ -69,10 +69,12 @@ The group has two members, which the instructor approved.
 | Project Focus (AutoML vs manual training): scope, fair-comparison protocol, plan | `README.md` (Project Focus) | Zainab Soomro |
 | AutoML groundwork carried into the focus (Ludwig hands-off and guided runners, PR-AUC objective, tests) | `src/automl_simple.py`, `src/automl_ludwig.py`, `tests/test_automl_*.py` | Zainab Soomro |
 | README deployment, monitoring and cURL sections; Makefile Docker targets | `README.md`, `Makefile` | Uzair Ahmed Khuhro |
+| Dashboard image and CI job (`ui.Dockerfile`, build-dashboard, deploy-dashboard) | `ui.Dockerfile`, `requirements-dashboard.txt`, `.github/workflows/ci.yml`, `render.yaml` | Uzair Ahmed Khuhro |
+| Milestone 2 finishing: `/stats` alias, `model_type` in `/model-info`, deploy jobs that report a missing secret as skipped, live checks after deploy, runbook troubleshooting, README status and limitations | `src/app.py`, `.github/workflows/ci.yml`, `tests/test_monitoring.py`, `tests/test_api_extended.py`, `RUNBOOK.md`, `README.md` | Zainab Soomro |
 
 ## Reflections
 
-Each member writes 2–3 lines on what they built and what they learned.
+> **Drafts.** These were drafted from the project record (commits, files and this table), not written by the members. Each member must read their own, correct anything that's wrong, and rewrite it in their own words before submission.
 
-- **Zainab Soomro:** TODO
-- **Uzair Ahmed Khuhro:** TODO
+- **Zainab Soomro (draft):** I worked on explainability and on making the project's results trustworthy: SHAP explanations in the API and dashboard, the Excel export used for manual testing, publishing our experiment history and models to DagsHub, the approval-only model promotion script, and finishing Milestone 2's monitoring, CI deploy checks and documentation. The main lesson was to check claims against evidence. Our Ludwig search was configured for TPE but turned out to be effectively random, because Ludwig silently ignored a setting, and our dashboard deploy showed as successful while it was being skipped. Next time I'd add those checks as tests from the start.
+- **Uzair Ahmed Khuhro (draft):** I built the core pipeline and its serving: data validation and per-IP feature engineering, training with MLflow tracking, the FastAPI service including scoring by IP ID and from raw signals, and in Milestone 2 the Docker image, the GitHub Actions pipeline, the Render deployment and request monitoring. I learned to make each step reproducible and checkable: the image is smoke-tested in CI before it's pushed, and `/health` reports exactly which build is live. Next I'd move monitoring to persistent storage, and add the dashboard's Render service so both parts are hosted.

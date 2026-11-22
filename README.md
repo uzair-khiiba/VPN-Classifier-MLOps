@@ -4,11 +4,38 @@
 
 Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how that IP behaves across its attack signals. Served through a FastAPI endpoint, packaged with Docker and deployed on Render.
 
-**Live dashboard:** <https://vpn-proxy-dashboard.onrender.com>, which calls the live API below.
+**Live API:** <https://vpn-proxy-api.onrender.com> · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [health](https://vpn-proxy-api.onrender.com/health) · [monitoring](https://vpn-proxy-api.onrender.com/stats) (`/stats`, also at `/metrics`). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
 
-**Live API:** <https://vpn-proxy-api.onrender.com> · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [metrics](https://vpn-proxy-api.onrender.com/metrics). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
+**Dashboard:** runs locally against the live API (see [Dashboard](#dashboard)). Its Render service isn't live yet: the image is built and tested by CI, but the service hasn't been created on Render.
 
 **Project focus:** AutoML versus manual training. See [Project Focus](#project-focus-automl-vs-manual-training).
+
+**The problem.** CrowdSec reports attacks, not who is behind them. Telling a VPN or proxy exit from a directly attacking machine matters when deciding whether to block an address, since a VPN IP is shared by many users. The model makes that call for one IP from its aggregated behaviour and its Shodan footprint.
+
+## Milestone 2 at a glance
+
+| Requirement | Where | Status |
+|---|---|---|
+| Dockerfile with `/health` healthcheck | [Dockerfile](Dockerfile), [.dockerignore](.dockerignore) | Built and run locally; reports `(healthy)` |
+| CI: lint, test, Docker build | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Runs on every push; builds and smoke-tests the image |
+| Deployment | Render web service, [render.yaml](render.yaml) | Live at <https://vpn-proxy-api.onrender.com> |
+| Monitoring | `GET /stats` (alias `GET /metrics`), per-request logs | Request count, errors and average latency per endpoint |
+| Redeploy and rollback | [RUNBOOK.md](RUNBOOK.md) | By image tag `sha-<commit>` |
+| Project Focus | [below](#project-focus-automl-vs-manual-training) | Plan written; the comparison runs are future work |
+| Contributions | [CONTRIBUTION.md](CONTRIBUTION.md) | Names, ERP IDs and the Milestone 2 task table |
+
+## Technologies
+
+| Area | Tools |
+|---|---|
+| Data and features | DuckDB, pandas, PyArrow |
+| Models | scikit-learn (HistGradientBoosting, random forest, logistic regression); Ludwig, Ray Tune and PyTorch for AutoML |
+| Experiment tracking | MLflow, with DagsHub as the hosted server |
+| Explainability | SHAP, permutation importance |
+| Serving | FastAPI, Pydantic, Uvicorn |
+| Dashboard | Streamlit, Altair |
+| Containers and CI/CD | Docker, GitHub Actions, GitHub Container Registry, Render |
+| Quality | pytest, Ruff |
 
 **Task:** binary classification, one prediction per attacker IP.
 **Metric:** F1 of the VPN/proxy class on a held-out test set of IPs. Only 1.95% of IPs are VPN/proxy, so accuracy is misleading: even the weakest model scores 98.4%.
@@ -78,6 +105,18 @@ The steps can also be run one at a time: `make data`, `make train`, `make test`.
 
 ## Deployment (Milestone 2)
 
+To build and run the API container yourself:
+
+```bash
+docker build -t vpn-proxy-api .
+docker run -d --name vpn-proxy-api -p 8000:8000 vpn-proxy-api
+docker ps                                   # STATUS shows (healthy) after about 20 s
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
+curl http://localhost:8000/stats
+docker rm -f vpn-proxy-api                  # stop and remove it
+```
+
 ```
 git push main ─► GitHub Actions CI ─────────────────────────────────────────────────► Render (free web service)
                  lint (ruff) ─┐                                                       runs ghcr.io/…:sha-<commit>
@@ -102,9 +141,13 @@ Measured locally: compressed image 243 MB, memory use about 230 MB after serving
 | Job | Runs on | What it does |
 |---|---|---|
 | **lint** | every push and PR | `ruff check src tests ui experiments` |
-| **test** | every push and PR | `pytest` (~210 tests; synthetic data and the committed model, no dataset needed). The pass/fail count shows in the job, and the JUnit report is uploaded as an artifact |
-| **build** | after lint and test pass | Builds the Docker image, then starts it and checks `/health`, a `/predict` call, `/metrics`, and the Docker `HEALTHCHECK` status. On a push to `main` it also pushes `ghcr.io/uzair-khiiba/vpn-classifier-mlops:sha-<commit>` and `:latest`. A `v*` tag also pushes `:<tag>` |
-| **deploy** | pushes to `main` | Calls Render's deploy hook with that exact `sha-<commit>` image, then waits until the live `/health` reports the new build |
+| **test** | every push and PR | `pytest` (about 215 tests; synthetic data and the committed model, no dataset or secrets needed). The pass/fail count shows in the job, and the JUnit report is uploaded as an artifact |
+| **build** | after lint and test pass | Builds the Docker image, then starts it and checks `/health`, a `/predict` call, `/metrics`, `/stats`, `/model-info` and the Docker `HEALTHCHECK` status. On a push to `main` it also pushes `ghcr.io/uzair-khiiba/vpn-classifier-mlops:sha-<commit>` and `:latest`. A `v*` tag also pushes `:<tag>` |
+| **build-dashboard** | after lint and test pass | The same for the dashboard image ([ui.Dockerfile](ui.Dockerfile)): builds, smoke-tests and, on `main`, pushes `vpn-classifier-dashboard` |
+| **deploy** | pushes to `main` | Calls Render's deploy hook with that exact `sha-<commit>` image, waits until the live `/health` reports the new build, then checks `/health`, `/predict` and `/stats` on it |
+| **deploy-dashboard** | pushes to `main` | Calls the dashboard's deploy hook |
+
+**A deploy without its secret is reported as skipped, not as a success.** Each deploy job first checks its deploy hook secret. If it's missing, the deploy steps show as skipped, and the run summary names the missing secret. Lint, test and build never need secrets.
 
 ### Deploying on Render
 
@@ -114,7 +157,13 @@ The setup is done once and described in [RUNBOOK.md](RUNBOOK.md#one-time-setup):
 2. In Render, choose New → Blueprint and select this repo. [render.yaml](render.yaml) creates the `vpn-proxy-api` web service from the GHCR image, with health check path `/health`.
 3. Add the service's deploy hook as the repo secret `RENDER_DEPLOY_HOOK_URL`, and its URL as the repo variable `SERVICE_URL`.
 
-After that, every merge to `main` is tested, built and deployed automatically. **Redeploying and rolling back to an earlier image tag** are covered step by step in [RUNBOOK.md](RUNBOOK.md).
+After that, every merge to `main` is tested, built and deployed automatically. **Redeploying and rolling back to an earlier image tag** are covered step by step in [RUNBOOK.md](RUNBOOK.md). In short:
+
+```bash
+# Redeploy: merge to main, or re-run the latest CI run on main. To roll back, deploy an earlier image tag:
+curl -X POST "$RENDER_DEPLOY_HOOK_URL&imgURL=ghcr.io%2Fuzair-khiiba%2Fvpn-classifier-mlops%3Asha-183008a"
+curl -s https://vpn-proxy-api.onrender.com/health    # "build" shows which commit is live
+```
 
 ### Example requests against the deployed service
 
@@ -134,19 +183,20 @@ curl -X POST $URL/predict -H "Content-Type: application/json" -d @examples/regul
 curl $URL/predict/ip/47584                                   # a held-out test IP, by ID
 curl -X POST $URL/predict/signals -H "Content-Type: application/json" -d @examples/signals_request.json
 curl -X POST "$URL/explain/shap?top_k=3" -H "Content-Type: application/json" -d @examples/vpn_ip.json
-curl $URL/metrics                                            # monitoring, see below
+curl $URL/model-info                                         # model name, version, type, threshold, features
+curl $URL/stats                                              # monitoring, see below (same data as $URL/metrics)
 ```
 
 ## Monitoring
 
 Every request goes through a small middleware ([src/monitoring.py](src/monitoring.py)) that times it and records it under its route template, so `/predict/ip/1` and `/predict/ip/2` count as one endpoint. Paths that match no route, such as bot scans, are grouped as `<unmatched>`. The numbers are visible in three places:
 
-- **`GET /metrics`** (counter endpoint): totals since the process started (requests, 5xx errors, average latency), predictions served per class, and per endpoint the count, errors, and average, p95 and max latency.
+- **`GET /stats`** and **`GET /metrics`** (counter endpoint, the same data under two names): totals since the process started (requests, 5xx errors, average latency), predictions served per class, and per endpoint the count, errors, and average, p95 and max latency. Invalid requests (422) and unknown IDs (404) are counted as requests but not as errors; only 5xx responses count as errors.
 - **Logs:** one line per request in Render's log viewer: `request method=POST path=/predict status=200 latency_ms=4.21`.
 - **Response header:** `X-Process-Time-Ms` on every response.
 
 ```bash
-curl -s $URL/metrics | python3 -m json.tool
+curl -s $URL/stats | python3 -m json.tool
 # {
 #   "started_at": "2026-11-18T07:39:06+00:00", "uptime_s": 4.2,
 #   "total_requests": 10, "total_errors": 0, "avg_latency_ms": 55.5,
@@ -156,7 +206,7 @@ curl -s $URL/metrics | python3 -m json.tool
 #     "GET /health":   {"count": 3, "errors": 0, "avg_latency_ms": 1.69, ...}, ...
 ```
 
-The counters are kept in memory, so they reset when the instance restarts, sleeps or redeploys. That's enough to demonstrate live traffic during grading; a dashboard such as Prometheus/Grafana is out of scope for this project's focus.
+**This is application-level monitoring, not infrastructure monitoring.** The counters are kept in the API's memory, so they reset when the instance restarts, sleeps or redeploys, and they cover one instance only. There's no Prometheus, Grafana, alerting or long-term storage. That's enough to show live traffic during grading. Render's own dashboard separately shows CPU, memory and the logs above.
 
 ## Project Focus: AutoML vs manual training
 
@@ -165,7 +215,7 @@ The counters are kept in memory, so they reset when the instance restarts, sleep
 - **Manual:** five model families chosen by us and selected by 5-fold CV F1. Experiments A–F tuned the threshold, class imbalance handling, hyperparameters and feature groups by hand. The result is the deployed `hgb_slow` and the best experimental model, `exp_c_trees_400_no_early_stop`.
 - **AutoML:** [Ludwig](https://ludwig.ai/) in two modes. The *hands-off* mode (`make automl-simple`) lets Ludwig choose the architecture (it picked TabNet), the search space and the search. The *guided* mode (`make automl`, v2 config) has Ludwig search a fixed neural network with TPE and a PR-AUC objective.
 
-**Why it suits this project.** The data is tabular and heavily imbalanced (1.95% positives), with 28 engineered behavioural features. On such data, gradient-boosted trees are usually hard to beat, so it's an open question whether AutoML saves effort here or costs accuracy. Our Milestone 1 numbers already show a gap: manual test F1 0.766 (deployed) and 0.788 (best), against 0.702 for guided Ludwig and 0.710 for hands-off Ludwig. However, [that comparison is not like for like](reports/experiments/verified_model_comparison.md). Ludwig trained on 94,885 IPs instead of 118,607, used one validation split instead of 5 folds, optimised ROC-AUC, and its first search never left random sampling. The focus is to remove those differences and measure the gap properly.
+**Why it suits this project.** The data is tabular and heavily imbalanced (1.95% positives), with 28 engineered behavioural features. On such data, gradient-boosted trees are usually hard to beat, so it's an open question whether AutoML saves effort here or costs accuracy. Our Milestone 1 numbers already show a gap: manual test F1 0.766 (deployed) and 0.788 (best), against 0.702 for guided Ludwig and 0.710 for hands-off Ludwig (the hands-off figure comes from a local run whose saved result isn't in the repository yet). However, [that comparison is not like for like](reports/experiments/verified_model_comparison.md). Ludwig trained on 94,885 IPs instead of 118,607, used one validation split instead of 5 folds, optimised ROC-AUC, and its first search never left random sampling. The focus is to remove those differences and measure the gap properly.
 
 **What will be built and compared.**
 
@@ -200,7 +250,15 @@ The counters are kept in memory, so they reset when the instance restarts, sleep
 
 A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you score an IP (by its ID, from its attack events, or from its 28 features), see why the model made the prediction, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
 
-**Deployed:** <https://vpn-proxy-dashboard.onrender.com> is a second Render service. It runs the dashboard image from [ui.Dockerfile](ui.Dockerfile) (Streamlit, Altair, httpx and pandas only, with no model) with `API_BASE_URL` set to the live API. CI builds, smoke-tests, pushes and deploys it alongside the API (`ghcr.io/uzair-khiiba/vpn-classifier-dashboard:sha-<commit>`). Both services sleep when idle, so open the API's `/health` first; otherwise the dashboard may report the API as offline until you reload. To run the dashboard locally against the live API instead: `API_BASE_URL=https://vpn-proxy-api.onrender.com make ui`.
+**Deployment status: ready, not live.** [ui.Dockerfile](ui.Dockerfile) builds a dashboard image (Streamlit, Altair, httpx and pandas only, with no model), and CI builds, smoke-tests and publishes it as `ghcr.io/uzair-khiiba/vpn-classifier-dashboard`. The Render service in [render.yaml](render.yaml) hasn't been created yet, so <https://vpn-proxy-dashboard.onrender.com> doesn't answer. [RUNBOOK.md](RUNBOOK.md#the-dashboard-service) lists the two steps that bring it up. Until then, run it locally against the live API:
+
+```bash
+docker run -p 8501:8501 -e API_BASE_URL=https://vpn-proxy-api.onrender.com ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest
+# or, without Docker:
+API_BASE_URL=https://vpn-proxy-api.onrender.com make ui
+```
+
+Free Render services sleep when idle, so open the API's `/health` first; otherwise the dashboard may report the API as offline until you reload.
 
 It uses a light, high-contrast theme made for projectors: a white page, near-black text, visible borders and slightly larger text (`.streamlit/config.toml`). The charts share one colourblind-safe palette from `ui/theme.py`: orange means a feature pushes the score toward VPN/proxy, and blue means it pushes away.
 
@@ -334,7 +392,7 @@ Results on the full data (118,607 train IPs, 29,652 test IPs):
 | `POST /explain?top_k=8` | Median replacement, not SHAP: the prediction, plus how much the probability changes when each feature is replaced by its training median |
 | `POST /explain/shap?top_k=28` | SHAP values for the VPN/proxy class from the served model, with the explainer that ran. They add up exactly to the model's log-odds |
 | `GET /explain/shap/global` | The saved SHAP ranking, returned only if it was generated for the served model version |
-| `GET /metrics` | Monitoring: request count, 5xx errors and latency (avg, p95, max) per endpoint since start, and predictions per class |
+| `GET /stats`, `GET /metrics` | Monitoring (the same data under two names): request count, 5xx errors and latency (avg, p95, max) per endpoint since start, and predictions per class |
 | `GET /docs` | Auto-generated Swagger UI, with the example requests below preloaded |
 
 Pydantic validates every field: counts must be whole numbers ≥ 0 (or ≥ 1 where an IP always has one), shares must be in [0, 1], flags must be 0 or 1, all fields are required, and unknown fields are rejected. Combinations the pipeline can't produce are rejected too, such as open ports with `has_shodan = 0` or attack shares adding up to more than 1 (the full list is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md)). A model file with a non-numeric threshold, missing metadata, or features that differ from the API's 28 is treated as no model. If no model is loaded, `/health` reports `degraded` and the model endpoints return 503. The reason goes to the server log, so clients never see file paths. `/explain` also reports whether resetting each feature would flip the class.
@@ -467,7 +525,7 @@ The suite covers the three parts the milestone asks for, and more: data preparat
 | `tests/test_automl_config.py` | Both Ludwig configs match the pipeline's features; v2 has adaptive trials and a PR-AUC objective; retraining matches trials (no Ludwig install needed) |
 | `tests/test_export_features.py` | The export keeps training values and feature order, refuses the synthetic sample, and real rows get the same answer through the API |
 | `tests/test_shap.py` | SHAP explains class 1 and adds up to the model; missing values; feature order; explainer fallback; the API endpoints; plots; the real served model |
-| `tests/test_monitoring.py` | `/metrics` counts requests per route template with latency, groups unknown paths, counts 5xx but not 422, counts predictions per class; each request is logged; `X-Process-Time-Ms` header |
+| `tests/test_monitoring.py` | `/metrics` counts requests per route template with latency, groups unknown paths, counts 5xx but not 422, counts predictions per class; `/stats` returns the same data; a health check, a prediction, an invalid request and a 503 are each recorded correctly; each request is logged; `X-Process-Time-Ms` header |
 | `tests/test_mlflow_publish.py` | History copy: no duplicates, resuming, failures, verification. Model logging and reload. Promotion refusals. The deployed model's hash. Nested trials |
 
 ## Repository layout
@@ -489,6 +547,16 @@ examples/       example request bodies (28 features, and raw signals)
 Dockerfile, .dockerignore, requirements-api.txt   the API image
 render.yaml     Render service definition;  RUNBOOK.md: redeploy and roll back
 ```
+
+## Known limitations
+
+- **Monitoring resets.** `/stats` lives in memory, so it restarts from zero after a redeploy or when the free instance sleeps.
+- **Cold starts.** Render's free plan sleeps after 15 idle minutes, and the first request then takes 30–60 s.
+- **The dashboard isn't hosted yet.** Its image is ready, but its Render service hasn't been created.
+- **An IP needs its features, not its address.** The API scores an IP from its 28 features, its raw signals, or its test-set ID. There's no lookup of real IP addresses, because the dataset anonymises them, and no live Shodan query.
+- **Population counts are frozen.** `asn_unique_ips` and the `*_shared` features use counts from the training data's snapshot (`models/feature_reference.json`), so they slowly go out of date for new traffic.
+- **The Project Focus comparison is planned, not done.** The fair AutoML-vs-manual runs (FLAML, budget curves, the four-arm table) haven't been executed yet.
+- **One served model.** `hgb_slow` is deployed. The better-scoring 400-tree experimental model isn't, because switching needs the team's approval through `experiments/promote_model.py`.
 
 ## Team
 

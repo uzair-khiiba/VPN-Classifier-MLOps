@@ -2,6 +2,40 @@
 
 How the API is deployed, how to redeploy it, how to roll back to an earlier image, and how to check that it's healthy.
 
+| | |
+|---|---|
+| Live API | <https://vpn-proxy-api.onrender.com> (`/health`, `/docs`, `/stats`, `/metrics`, `/model-info`) |
+| Image | `ghcr.io/uzair-khiiba/vpn-classifier-mlops`, tags `sha-<7-char commit>`, `latest` and `v*` |
+| Dashboard | Not hosted yet: see [The dashboard service](#the-dashboard-service) |
+
+## Run the container locally
+
+```bash
+docker build -t vpn-proxy-api .                                   # about 3 min the first time
+docker run -d --name vpn-proxy-api -p 8000:8000 vpn-proxy-api
+docker ps --filter name=vpn-proxy-api                             # STATUS: Up ... (healthy) after about 20 s
+docker inspect --format '{{.State.Health.Status}}' vpn-proxy-api  # healthy / starting / unhealthy
+docker logs -f vpn-proxy-api                                      # one "request method=... latency_ms=..." line per request
+```
+
+Test it:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/model-info
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
+curl http://localhost:8000/stats          # same data as /metrics
+# Swagger UI: http://localhost:8000/docs
+```
+
+Stop and remove it:
+
+```bash
+docker stop vpn-proxy-api && docker rm vpn-proxy-api
+```
+
+To run exactly what's deployed instead of a local build, use `docker pull ghcr.io/uzair-khiiba/vpn-classifier-mlops:latest` and run that image. On Windows, use the same commands in Command Prompt or PowerShell, after starting Docker Desktop.
+
 ## How deployment works
 
 ```
@@ -27,6 +61,8 @@ Without the secret, the deploy job prints a warning and skips the deploy; the re
 
 ### The dashboard service
 
+**Status: not live.** CI builds, smoke-tests and publishes the dashboard image, and the image is public, but the Render service has never been created. So <https://vpn-proxy-dashboard.onrender.com> answers 404 with `x-render-routing: no-server`, and CI's dashboard deploy step is skipped because `RENDER_DASHBOARD_DEPLOY_HOOK_URL` isn't set. Steps 2 and 3 below need someone with access to the Render account and the GitHub repo settings.
+
 The dashboard (`vpn-proxy-dashboard`, image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard`, built from `ui.Dockerfile`) is set up the same way:
 
 1. After CI's first run on `main` with the dashboard job, make the `vpn-classifier-dashboard` package public.
@@ -51,6 +87,29 @@ URL=https://<service>.onrender.com
 curl -s $URL/health      # "status":"ok", "model_loaded":true, "build":"<commit you expect>"
 curl -s -X POST $URL/predict -H "Content-Type: application/json" -d @examples/vpn_ip.json
 ```
+
+## Check what's deployed
+
+```bash
+URL=https://vpn-proxy-api.onrender.com
+curl -s $URL/health        # "build": the commit the image was built from; "model" and "version": the loaded model
+curl -s $URL/model-info    # model name, version, model_type, threshold, the 28 features in order, saved metrics
+```
+
+`build` should match the latest commit on `main` that CI deployed (Actions → the run → **Deploy to Render**). `model` and `version` come from the model file inside the image, `models/model.joblib`, so they change only when a promoted model is committed and deployed.
+
+## Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| The URL takes 30–60 s, then works | The free instance was asleep | Normal. Open `/health` a minute before a demo |
+| `/health` says `"status":"degraded"` | The model file is missing or invalid in the image | Render → Logs shows `Model not loaded: ...`. Roll back to the last good tag, then fix `models/model.joblib` |
+| Docker reports `unhealthy` | `/health` didn't answer `"status":"ok"` within 5 s, 3 times | `docker logs <container>`, then `docker inspect --format '{{json .State.Health}}' <container>` shows the last health-check outputs |
+| Render deploy fails or never goes live | The image tag doesn't exist, or the package is private | Check the tag on GitHub → Packages. Render's Events tab shows the failure; the previous deploy keeps serving |
+| CI's deploy job says skipped | `RENDER_DEPLOY_HOOK_URL` isn't set | Add the secret (see One-time setup). The run summary names the missing secret |
+| CI's "Wait for the new build" step times out | Render didn't pull the new image within 10 minutes | Check Render → Events. Re-run the job, or deploy the tag by hand with the deploy hook |
+| `/predict` returns 422 | The request is invalid: a field is missing or out of range | The response says which field. This is the client's error, not an outage, and `/stats` doesn't count it as an error |
+| `/stats` shows errors above 0 | Some requests failed with 5xx | Find them in the logs with `status=5`, then roll back if they started with a deploy |
 
 ## Roll back to a previous image tag
 
@@ -84,13 +143,13 @@ docker run -d --name vpn-proxy-api -p 8000:8000 ghcr.io/uzair-khiiba/vpn-classif
 
 | Where | What you see |
 |---|---|
-| `GET /metrics` | Since the process started: `total_requests`, `total_errors` (5xx), `avg_latency_ms`, predictions per class, and per endpoint the count, errors, average, p95 and max latency. Counters reset on restart or redeploy. |
+| `GET /stats` or `GET /metrics` | The same data under two names. Since the process started: `total_requests`, `total_errors` (5xx), `avg_latency_ms`, predictions per class, and per endpoint the count, errors, average, p95 and max latency. Counters reset on restart or redeploy. |
 | Render → Logs | One line per request: `request method=POST path=/predict status=200 latency_ms=4.21`, plus uvicorn's access log and any model-loading errors |
 | Response header | `X-Process-Time-Ms` on every response |
 | `GET /health` | Model loaded, lookup data loaded, model version, running build |
 
 ```bash
-watch -n 5 "curl -s $URL/metrics | python3 -m json.tool | head -20"
+watch -n 5 "curl -s $URL/stats | python3 -m json.tool | head -20"
 ```
 
 **Things to check:**

@@ -363,6 +363,8 @@ class Health(BaseModel):
 class ModelInfo(BaseModel):
     model: str
     version: str
+    model_type: str = Field(description="Class of the loaded estimator, read from the model itself")
+    model_status: str = Field(description="'loaded': this endpoint answers only when a valid model is loaded")
     threshold: float
     n_features: int
     features: list[str] = Field(description="The model's inputs, in the order it receives them")
@@ -464,12 +466,19 @@ def metrics() -> dict:
     return METRICS.snapshot()
 
 
+@app.get("/stats")
+def stats() -> dict:
+    """The same monitoring data as GET /metrics, under the name the course instructions use."""
+    return metrics()
+
+
 @app.get("/model-info", response_model=ModelInfo, responses=MODEL_UNAVAILABLE)
 def model_info() -> dict:
     """Identity and saved evaluation results of the model this API is serving."""
     bundle = _bundle()
     meta = bundle["metadata"]
-    return {"model": meta["model_name"], "version": meta["version"], "threshold": round(float(bundle["threshold"]), 4),
+    return {"model": meta["model_name"], "version": meta["version"], "model_type": type(bundle["model"]).__name__,
+            "model_status": "loaded", "threshold": round(float(bundle["threshold"]), 4),
             "n_features": len(bundle["features"]), "features": bundle["features"],
             "n_train": meta.get("n_train"), "trained_at": meta.get("trained_at"),
             "metrics": meta.get("metrics", {})}

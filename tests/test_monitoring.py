@@ -84,3 +84,33 @@ def test_latency_window_and_percentile():
     assert stats["avg_latency_ms"] == pytest.approx(600.5)
     assert 1100 <= stats["p95_latency_ms"] <= 1200  # p95 of the most recent 1000 (201..1200)
     assert _percentile([], 95) == 0.0
+
+
+def test_stats_is_an_alias_of_metrics(loaded):
+    client.post("/predict", json=consistent_features())
+    from_metrics = client.get("/metrics").json()
+    from_stats = client.get("/stats").json()
+    assert set(from_stats) == set(from_metrics)
+    # /stats is answered one request later, so it also counts the /metrics call before it.
+    assert from_stats["total_requests"] == from_metrics["total_requests"] + 1
+    assert from_stats["predictions"] == from_metrics["predictions"]
+    assert from_stats["endpoints"]["GET /metrics"]["count"] == 1
+    paths = client.get("/openapi.json").json()["paths"]
+    assert "get" in paths["/metrics"] and "get" in paths["/stats"]
+
+
+def test_monitoring_tracks_success_invalid_input_and_server_errors(model_path):
+    """The four cases shown in the demo: a health check, a prediction, an invalid request and a 503."""
+    app_module.load_model(model_path)
+    METRICS.reset()
+    assert client.get("/health").status_code == 200
+    assert client.post("/predict", json=consistent_features()).status_code == 200
+    assert client.post("/predict", json={"n_signals": -1}).status_code == 422
+    app_module.load_model(model_path.parent / "missing.joblib")
+    assert client.post("/predict", json=consistent_features()).status_code == 503
+    app_module.STATE.update(bundle=None, error=None)
+    body = client.get("/stats").json()
+    assert body["total_requests"] == 4 and body["total_errors"] == 1
+    assert body["endpoints"]["POST /predict"] == {**body["endpoints"]["POST /predict"], "count": 3, "errors": 1}
+    assert body["endpoints"]["GET /health"]["count"] == 1
+    assert sum(body["predictions"].values()) == 1 and body["avg_latency_ms"] > 0

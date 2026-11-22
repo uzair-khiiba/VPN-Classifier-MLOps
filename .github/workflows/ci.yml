@@ -103,6 +103,8 @@ jobs:
           curl -sf -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
                -d @examples/vpn_ip.json | grep -q '"is_vpn_proxy":true'
           curl -sf http://localhost:8000/metrics | grep -q '"POST /predict"'
+          curl -sf http://localhost:8000/stats | grep -q '"POST /predict"'
+          curl -sf http://localhost:8000/model-info | grep -q '"model_status":"loaded"'
           for i in $(seq 1 20); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' api)" = healthy ] && break; sleep 3
           done
@@ -190,6 +192,8 @@ jobs:
           build-args: GIT_SHA=${{ steps.vars.outputs.short_sha }}
           cache-from: type=gha,scope=dashboard
 
+  # Each deploy job first checks its deploy hook. Without it, the deploy steps show as "skipped" and the run
+  # summary says which secret is missing, so a skipped deploy can't pass for a successful one.
   deploy-dashboard:
     name: Deploy dashboard to Render
     runs-on: ubuntu-latest
@@ -197,20 +201,31 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
     steps:
+      - name: Check deploy configuration
+        id: config
+        env:
+          HOOK: ${{ secrets.RENDER_DASHBOARD_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$HOOK" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Dashboard deploy SKIPPED: the secret RENDER_DASHBOARD_DEPLOY_HOOK_URL is not set. See RUNBOOK.md."
+            echo "### Dashboard deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "The secret \`RENDER_DASHBOARD_DEPLOY_HOOK_URL\` is not set, so nothing was deployed. See RUNBOOK.md." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Trigger Render deploy of this commit's dashboard image
+        if: steps.config.outputs.configured == 'true'
         env:
           HOOK: ${{ secrets.RENDER_DASHBOARD_DEPLOY_HOOK_URL }}
           IMAGE_BASE: ghcr.io/${{ github.repository_owner }}/vpn-classifier-dashboard
         run: |
-          if [ -z "$HOOK" ]; then
-            echo "::warning::RENDER_DASHBOARD_DEPLOY_HOOK_URL secret is not set; skipping dashboard deploy. See RUNBOOK.md."
-            exit 0
-          fi
           export IMAGE_URL="${IMAGE_BASE}:sha-${GITHUB_SHA::7}"
           ENCODED=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
           curl -fsS -X POST "${HOOK}&imgURL=${ENCODED}"
           echo
           echo "Requested deploy of ${IMAGE_URL}"
+          echo "### Dashboard deploy requested: \`${IMAGE_URL}\`" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Deploy to Render
@@ -219,21 +234,33 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
     steps:
+      - uses: actions/checkout@v4  # the live check sends examples/vpn_ip.json
+      - name: Check deploy configuration
+        id: config
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$HOOK" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::API deploy SKIPPED: the secret RENDER_DEPLOY_HOOK_URL is not set. See RUNBOOK.md."
+            echo "### API deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "The secret \`RENDER_DEPLOY_HOOK_URL\` is not set, so nothing was deployed. See RUNBOOK.md." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Trigger Render deploy of this commit's image
+        if: steps.config.outputs.configured == 'true'
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
           IMAGE_URL: ${{ env.IMAGE }}:${{ needs.build.outputs.sha_tag }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "::warning::RENDER_DEPLOY_HOOK_URL secret is not set; skipping deploy. See RUNBOOK.md."
-            exit 0
-          fi
           ENCODED=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
           curl -fsS -X POST "${RENDER_DEPLOY_HOOK_URL}&imgURL=${ENCODED}"
           echo
           echo "Requested deploy of ${IMAGE_URL}"
-      - name: Wait for the new build to go live
-        if: vars.SERVICE_URL != ''
+          echo "### API deploy requested: \`${IMAGE_URL}\`" >> "$GITHUB_STEP_SUMMARY"
+      - name: Wait for the new build to go live, then check it
+        if: steps.config.outputs.configured == 'true' && vars.SERVICE_URL != ''
         env:
           SERVICE_URL: ${{ vars.SERVICE_URL }}
           WANT: ${{ needs.build.outputs.sha_tag }}
@@ -242,7 +269,14 @@ jobs:
           for i in $(seq 1 40); do
             BUILD=$(curl -s "$SERVICE_URL/health" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("build",""))' 2>/dev/null || true)
             echo "attempt $i: live build=${BUILD:-?} want=${WANT}"
-            [ "$BUILD" = "$WANT" ] && { curl -s "$SERVICE_URL/health"; exit 0; }
+            if [ "$BUILD" = "$WANT" ]; then
+              curl -sf "$SERVICE_URL/health" | grep -q '"status":"ok"'
+              curl -sf -X POST "$SERVICE_URL/predict" -H "Content-Type: application/json" \
+                   -d @examples/vpn_ip.json | grep -q '"is_vpn_proxy":true'
+              curl -sf "$SERVICE_URL/stats" | grep -q '"total_requests"'
+              echo "### Live service checked: build ${WANT}, /health ok, /predict ok, /stats ok" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
             sleep 15
           done
           echo "::error::Service did not report build ${WANT} within 10 minutes"

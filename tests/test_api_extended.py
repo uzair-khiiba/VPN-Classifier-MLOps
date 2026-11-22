@@ -2,6 +2,7 @@
 
 import json
 
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -83,6 +84,24 @@ def test_model_info_reports_the_served_model(loaded):
     body = client.get("/model-info").json()
     assert body["model"] == "test-logreg" and body["n_features"] == len(FEATURES)
     assert body["metrics"] == {} and 0 < body["threshold"] < 1
+    assert body["model_type"] == "LogisticRegression" and body["model_status"] == "loaded"
+
+
+def test_api_predictions_match_the_model_and_survive_a_reload(model_path):
+    """The API must return exactly what the bundle's model computes, and reloading the file mustn't change it."""
+    from src.model_io import load_bundle
+
+    bundle = load_bundle(model_path)
+    payload = consistent_features()
+    direct = float(bundle["model"].predict_proba(pd.DataFrame([payload])[bundle["features"]])[0, 1])
+    app_module.load_model(model_path)
+    first = client.post("/predict", json=payload).json()
+    app_module.load_model(model_path)
+    second = client.post("/predict", json=payload).json()
+    app_module.STATE.update(bundle=None, error=None)
+    assert first == second
+    assert first["probability"] == round(direct, 4)
+    assert first["prediction"] == int(direct >= bundle["threshold"])
 
 
 def test_infinite_values_are_rejected(loaded):

@@ -141,7 +141,7 @@ docker-build:     ## build the API image (IMAGE=vpn-proxy-api TAG=local)
 
 docker-run:       ## run the API image on http://127.0.0.1:8000 (Docker healthcheck hits /health)
 	docker run -d --rm --name vpn-proxy-api -p 8000:8000 $(IMAGE):$(TAG)
-	@echo "Started. Try: curl http://127.0.0.1:8000/health   and   curl http://127.0.0.1:8000/metrics"
+	@echo "Started. Try: curl http://127.0.0.1:8000/health   and   curl http://127.0.0.1:8000/stats"
 
 docker-stop:      ## stop the container started by docker-run
 	docker stop vpn-proxy-api
