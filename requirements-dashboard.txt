@@ -1,0 +1,6 @@
+# Runtime packages for the dashboard container only (see ui.Dockerfile). Versions match requirements.txt
+# and requirements-ui.txt. The dashboard reaches the model only through the API, so no ML packages are needed.
+altair==6.3.0
+httpx==0.28.1
+pandas==3.0.6
+streamlit==1.66.1

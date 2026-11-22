@@ -11,3 +11,17 @@ services:
     region: singapore
     healthCheckPath: /health
     autoDeploy: false
+
+  # The Streamlit dashboard. It holds no model and calls the API above over HTTPS.
+  - type: web
+    name: vpn-proxy-dashboard
+    runtime: image
+    image:
+      url: ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest
+    plan: free
+    region: singapore
+    healthCheckPath: /_stcore/health
+    autoDeploy: false
+    envVars:
+      - key: API_BASE_URL
+        value: https://vpn-proxy-api.onrender.com

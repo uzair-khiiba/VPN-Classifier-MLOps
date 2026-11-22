@@ -4,7 +4,9 @@
 
 Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how that IP behaves across its attack signals. Served through a FastAPI endpoint, packaged with Docker and deployed on Render.
 
-**Live API:** <https://vpn-proxy-api.onrender.com> (TODO: replace with the real Render URL) · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [metrics](https://vpn-proxy-api.onrender.com/metrics). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
+**Live dashboard:** <https://vpn-proxy-dashboard.onrender.com>, which calls the live API below.
+
+**Live API:** <https://vpn-proxy-api.onrender.com> · [interactive docs](https://vpn-proxy-api.onrender.com/docs) · [metrics](https://vpn-proxy-api.onrender.com/metrics). It runs on Render's free plan, so the first request after 15 idle minutes takes 30–60 s. If the link doesn't answer, the service was shut down after grading to save cost; [Deployment](#deployment-milestone-2) shows how to bring it back.
 
 **Project focus:** AutoML versus manual training. See [Project Focus](#project-focus-automl-vs-manual-training).
 
@@ -117,7 +119,7 @@ After that, every merge to `main` is tested, built and deployed automatically. *
 ### Example requests against the deployed service
 
 ```bash
-URL=https://vpn-proxy-api.onrender.com     # TODO: the real Render URL
+URL=https://vpn-proxy-api.onrender.com
 
 curl $URL/health
 # {"status":"ok","model_loaded":true,"model_status":"loaded","model":"hgb_slow","version":"20261019-173911",
@@ -197,6 +199,8 @@ The counters are kept in memory, so they reset when the instance restarts, sleep
 ## Dashboard
 
 A Streamlit dashboard, **Explainable VPN & Proxy Detector**, lets you score an IP (by its ID, from its attack events, or from its 28 features), see why the model made the prediction, review evaluation results and check the API's status. It reaches the model only through HTTP calls to the API. The full walkthrough is in [docs/UI_AND_API_GUIDE.md](docs/UI_AND_API_GUIDE.md).
+
+**Deployed:** <https://vpn-proxy-dashboard.onrender.com> is a second Render service. It runs the dashboard image from [ui.Dockerfile](ui.Dockerfile) (Streamlit, Altair, httpx and pandas only, with no model) with `API_BASE_URL` set to the live API. CI builds, smoke-tests, pushes and deploys it alongside the API (`ghcr.io/uzair-khiiba/vpn-classifier-dashboard:sha-<commit>`). Both services sleep when idle, so open the API's `/health` first; otherwise the dashboard may report the API as offline until you reload. To run the dashboard locally against the live API instead: `API_BASE_URL=https://vpn-proxy-api.onrender.com make ui`.
 
 It uses a light, high-contrast theme made for projectors: a white page, near-black text, visible borders and slightly larger text (`.streamlit/config.toml`). The charts share one colourblind-safe palette from `ui/theme.py`: orange means a feature pushes the score toward VPN/proxy, and blue means it pushes away.
 
