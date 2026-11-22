@@ -61,7 +61,7 @@ Without the secret, the deploy job prints a warning and skips the deploy; the re
 
 ### The dashboard service
 
-**Status: live, redeployed by hand.** The service was created in Render from the public image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard:latest` (no registry credential), with `API_BASE_URL=https://vpn-proxy-api.onrender.com` and health check path `/_stcore/health`. `RENDER_DASHBOARD_DEPLOY_HOOK_URL` isn't set, so CI's dashboard deploy step is skipped. To update the dashboard after CI publishes a new image, use Render → `vpn-proxy-dashboard` → **Manual Deploy → Deploy latest reference**. Adding the secret (step 3) makes CI do this automatically.
+**Status: live and deployed by CI.** The service runs the public image `ghcr.io/uzair-khiiba/vpn-classifier-dashboard` (no registry credential), with `API_BASE_URL=https://vpn-proxy-api.onrender.com` and health check path `/_stcore/health`. The secret `RENDER_DASHBOARD_DEPLOY_HOOK_URL` is set, so every push to `main` deploys that commit's `sha-<commit>` dashboard image. To redeploy by hand, use Render → `vpn-proxy-dashboard` → **Manual Deploy → Deploy latest reference**.
 
 **If the dashboard says "API offline":** the API was asleep. Open <https://vpn-proxy-api.onrender.com/health>, wait for it to answer, then reload the dashboard.
 
