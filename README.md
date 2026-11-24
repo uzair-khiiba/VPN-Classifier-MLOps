@@ -21,7 +21,7 @@ Predicts whether an attacker IP seen by CrowdSec is a VPN or proxy, from how tha
 | Deployment | Render web services, [render.yaml](render.yaml) | API live at <https://vpn-proxy-api.onrender.com>; dashboard at <https://vpn-proxy-dashboard.onrender.com> |
 | Monitoring | `GET /stats` (alias `GET /metrics`), per-request logs | Request count, errors and average latency per endpoint |
 | Redeploy and rollback | [RUNBOOK.md](RUNBOOK.md) | By image tag `sha-<commit>` |
-| Project Focus | [below](#project-focus-automl-vs-manual-training) | Plan written; the comparison runs are future work |
+| Project Focus | [below](#project-focus-automl-vs-manual-training) | Plan written; the FLAML arm is done (below); the Ludwig budget runs and the final report are future work |
 | Contributions | [CONTRIBUTION.md](CONTRIBUTION.md) | Names, ERP IDs and the Milestone 2 task table |
 
 ## Technologies
@@ -240,6 +240,21 @@ curl -s $URL/stats | python3 -m json.tool
 - The evidence for choosing PR-AUC as the search objective: Spearman correlation with CV F1 of 0.926 for PR-AUC against 0.631 for ROC-AUC.
 - The verified comparison table for the existing runs.
 - Tests: `tests/test_automl_config.py`, `tests/test_automl_simple.py`.
+
+**First result: FLAML vs manual (experiment G).** [`experiments/exp_g_flaml.py`](experiments/exp_g_flaml.py) ran FLAML for 10 minutes on the training set only, using the project's 5 folds and scored by PR-AUC. It searched LightGBM, XGBoost, random forest, extra trees and L1 logistic regression. The winner (XGBoost, 271 trees) was then cross-validated on the same folds, its threshold was tuned on out-of-fold predictions like `hgb_slow`'s, and the test set was scored once. Same split (fingerprint `7a8a6674be67b514`), same evaluation code.
+
+| Model | How it was built | CV F1 | Test F1 | Test precision / recall | Test PR-AUC |
+|---|---|---|---|---|---|
+| `hgb_slow` (deployed) | By hand, experiments A–F | 0.769 | 0.766 | 0.733 / 0.803 | 0.797 |
+| FLAML best (XGBoost) | 10-min automatic search, no hand-tuning | 0.786 | **0.782** | 0.762 / 0.803 | 0.844 |
+
+- FLAML's model finds the same 464 of 578 test VPN/proxy IPs as `hgb_slow`, with 145 false alarms instead of 169.
+- The paired bootstrap puts the test F1 difference at **+0.016, with a 95% interval of −0.002 to +0.034**. The interval includes 0, so on this test set the gain isn't conclusive. FLAML at least matched the deployed model.
+- Against our best hand-tuned model (`exp_c_trees_400_no_early_stop`, test F1 0.788), FLAML is about 0.006 lower. That's from comparing the two reports; no paired test was run.
+- **Answer so far:** on this tabular problem, tree-based AutoML with a 10-minute budget reached the level of our hand-tuned trees, while Ludwig's neural networks (0.702) did not. So the earlier gap was mostly about **neural networks vs trees**, not AutoML vs manual work.
+- Full record: [`reports/experiments/results/exp_g_flaml.json`](reports/experiments/results/exp_g_flaml.json) (best settings, score of each model family, versions), also logged to the local MLflow experiment `zainab_experiments`.
+- To rerun: `pip install -r requirements-flaml.txt`, then `python -m experiments.exp_g_flaml --budget 600`.
+- The FLAML model was **not deployed**: the API and its image are unchanged.
 
 **How it will be demonstrated (final submission):**
 - The MLflow compare view across the four arms.
@@ -554,7 +569,7 @@ render.yaml     Render service definition;  RUNBOOK.md: redeploy and roll back
 - **Cold starts.** Render's free plan sleeps after 15 idle minutes, and the first request then takes 30–60 s.
 - **An IP needs its features, not its address.** The API scores an IP from its 28 features, its raw signals, or its test-set ID. There's no lookup of real IP addresses, because the dataset anonymises them, and no live Shodan query.
 - **Population counts are frozen.** `asn_unique_ips` and the `*_shared` features use counts from the training data's snapshot (`models/feature_reference.json`), so they slowly go out of date for new traffic.
-- **The Project Focus comparison is planned, not done.** The fair AutoML-vs-manual runs (FLAML, budget curves, the four-arm table) haven't been executed yet.
+- **The Project Focus comparison is only partly done.** The FLAML arm has run under the fair protocol (one 10-minute search). The Ludwig budget runs, the budget curve and the four-arm report haven't been executed yet.
 - **One served model.** `hgb_slow` is deployed. The better-scoring 400-tree experimental model isn't, because switching needs the team's approval through `experiments/promote_model.py`.
 
 ## Team

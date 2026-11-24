@@ -1,0 +1,5 @@
+# Optional: only for experiments/exp_g_flaml.py (tree-based AutoML comparison).
+# The API, its Docker image and CI do not need these.
+flaml[automl]==2.8.0
+lightgbm==4.7.0
+xgboost==2.1.4
