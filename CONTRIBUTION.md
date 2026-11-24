@@ -81,6 +81,7 @@ The group has two members, which the instructor approved.
 | Task | Files | Owner |
 |---|---|---|
 | FLAML tree-based AutoML arm (experiment G) under the fair protocol, with paired bootstrap against the deployed model; Node 24 versions of the CI actions | `experiments/exp_g_flaml.py`, `requirements-flaml.txt`, `tests/test_flaml_experiment.py`, `reports/experiments/results/exp_g_flaml.json`, `README.md`, `.github/workflows/ci.yml` | Zainab Soomro |
+| Full Ludwig v2 search (Windows fix: one trial at a time), result recovered from the trial folders, paired bootstrap against the deployed model | `configs/ludwig_automl_v2.yaml`, `experiments/finish_ludwig_search.py`, `reports/experiments/results/ludwig_v2_search.json`, `README.md` | Zainab Soomro |
 
 ## Reflections
 

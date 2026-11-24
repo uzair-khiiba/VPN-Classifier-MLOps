@@ -51,6 +51,7 @@ data/exports/
 # Safety copies, run outputs and candidate models that are not served
 backups/
 ludwig_results_v2/
+ludwig_results_v2_*/
 ludwig_results_smoke/
 models/candidates/
 models/archive/
